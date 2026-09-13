@@ -68,7 +68,7 @@ S = SITE
 BASE_URL = f"https://{S['domain']}"
 FR_BASE = "https://ratescout.info.gf"  # FR-зеркало: кросс-доменный hreflang + баннер
 REF = S["ref"]
-ERID = "2VtzqvK5m96"
+ERID = "" if SITE.get("langs") == ["es"] else "2VtzqvK5m96"
 INDEXNOW_KEY = "b394aeced6a92ed48a09e2bd30099905"  # публичный ключ IndexNow (ключ-файл на сайте)
 
 LANGS = S.get("langs", ["ru", "en"])
@@ -207,8 +207,14 @@ def cat_page(lang, cat):
     return f"{PREF[lang]}/kategoriya/{CAT_SLUG.get(cat, 'prochee')}/"
 
 
+def x_erid():
+    return ("&erid=" + ERID) if ERID else ""
+
+
 def _bc_qs(base_qs):
     """Добавить erid к query-строке BestChange: ?p= -> ?p=&erid=, без дублей."""
+    if not ERID:
+        return base_qs
     sep = "&" if base_qs else "?"
     if "erid=" in base_qs:
         return base_qs
@@ -715,6 +721,12 @@ def render_market_leaders(lang):
                 "Рыночные данные CoinGecko, обновление ежечасно.")
         h1, lead = "Лидеры крипторынка", ("Криптовалюты по капитализации и объёму торгов, а также лидеры "
                                           "движения за неделю. Рыночные данные — по CoinGecko, справочно.")
+    elif lang == "es":
+        title = f"Líderes del mercado cripto — capitalización, volumen, movimientos | {S['name']}"
+        desc = ("Top de criptomonedas por capitalización y volumen, subidas y bajadas en 7 días. "
+                "Datos de mercado CoinGecko, actualización cada hora.")
+        h1, lead = "Líderes del mercado cripto", ("Criptomonedas por capitalización y volumen, más "
+                                                 "los mayores movimientos de la semana. Datos CoinGecko, de referencia.")
     elif en or lang == "es":
         title = f"Crypto market leaders — market cap, volume, movers | {S['name']}"
         desc = ("Top cryptocurrencies by market cap and trading volume, weekly gainers and losers. "
@@ -746,15 +758,15 @@ def render_market_leaders(lang):
         rows = "".join(f'<tr><td>{d.get("rank", "")}</td><td>{_nm(s)}</td><td>{_human_usd(d["mcap"], lang)}</td>'
                        f'<td>{_human_usd(d.get("vol", 0), lang)}</td><td>{_pct(d.get("chg7d"))}</td></tr>'
                        for s, d in cap)
-        blocks += (f'<h2 class="news">{T("По капитализации", "By market cap", "Par capitalisation")}</h2>'
-                   + _tbl(("#", T("Валюта", "Currency", "Monnaie"), T("Капитализация", "Market cap", "Capitalisation"),
-                           T("Объём 24ч", "Vol 24h", "Vol. 24 h"), T("7д", "7d", "7 j")), rows))
+        blocks += (f'<h2 class="news">{T("По капитализации", "By market cap", "Par capitalisation", "Por capitalización")}</h2>'
+                   + _tbl(("#", T("Валюта", "Currency", "Monnaie", "Moneda"), T("Капитализация", "Market cap", "Capitalisation", "Capitalización"),
+                           T("Объём 24ч", "Vol 24h", "Vol. 24 h", "Vol. 24 h"), T("7д", "7d", "7 j", "7d")), rows))
         vol = sorted(items, key=lambda x: x[1].get("vol") or 0, reverse=True)[:20]
         rows2 = "".join(f'<tr><td>{i}</td><td>{_nm(s)}</td><td>{_human_usd(d.get("vol", 0), lang)}</td>'
                         f'<td>{_human_usd(d["mcap"], lang)}</td></tr>' for i, (s, d) in enumerate(vol, 1))
-        blocks += (f'<h2 class="news">{T("По объёму торгов (24ч)", "By trading volume (24h)", "Par volume (24 h)")}</h2>'
-                   + _tbl(("#", T("Валюта", "Currency", "Monnaie"), T("Объём 24ч", "Vol 24h", "Vol. 24 h"),
-                           T("Капитализация", "Market cap", "Capitalisation")), rows2))
+        blocks += (f'<h2 class="news">{T("По объёму торгов (24ч)", "By trading volume (24h)", "Par volume (24 h)", "Por volumen (24h)")}</h2>'
+                   + _tbl(("#", T("Валюта", "Currency", "Monnaie", "Moneda"), T("Объём 24ч", "Vol 24h", "Vol. 24 h", "Vol. 24 h"),
+                           T("Капитализация", "Market cap", "Capitalisation", "Capitalización")), rows2))
         mv = [(s, d) for s, d in items if d.get("chg7d") is not None]
         if mv:
             gain = sorted(mv, key=lambda x: x[1]["chg7d"], reverse=True)[:10]
@@ -762,18 +774,18 @@ def render_market_leaders(lang):
 
             def _ml(lst):
                 return "".join(f'<tr><td>{_nm(s)}</td><td>{_pct(d["chg7d"])}</td></tr>' for s, d in lst)
-            blocks += (f'<h2 class="news">{T("Лидеры роста за 7д", "Top gainers (7d)", "Top hausses (7 j)")}</h2>'
-                       + _tbl((T("Валюта", "Currency", "Monnaie"), T("7д", "7d", "7 j")), _ml(gain)))
-            blocks += (f'<h2 class="news">{T("Лидеры падения за 7д", "Top losers (7d)", "Top baisses (7 j)")}</h2>'
-                       + _tbl((T("Валюта", "Currency", "Monnaie"), T("7д", "7d", "7 j")), _ml(loss)))
+            blocks += (f'<h2 class="news">{T("Лидеры роста за 7д", "Top gainers (7d)", "Top hausses (7 j)", "Top subidas (7d)")}</h2>'
+                       + _tbl((T("Валюта", "Currency", "Monnaie", "Moneda"), T("7д", "7d", "7 j", "7d")), _ml(gain)))
+            blocks += (f'<h2 class="news">{T("Лидеры падения за 7д", "Top losers (7d)", "Top baisses (7 j)", "Top bajadas (7d)")}</h2>'
+                       + _tbl((T("Валюта", "Currency", "Monnaie", "Moneda"), T("7д", "7d", "7 j", "7d")), _ml(loss)))
     else:
-        blocks = f'<p class="updnote">{T("Рыночные данные обновляются.", "Market data updating.", "Actualisation des données de marché.")}</p>'
+        blocks = f'<p class="updnote">{T("Рыночные данные обновляются.", "Market data updating.", "Actualisation des données de marché.", "Actualizando datos de mercado.")}</p>'
 
     cmp = compare_pairs()[:15]
     if cmp:
         cl = " · ".join(f'<a href="{PREF[lang]}/sravnenie/{a}-vs-{b}/">{CUR[a]["ticker"]} vs {CUR[b]["ticker"]}</a>'
                         for a, b in cmp)
-        blocks += f'<h2 class="news">{T("Сравнения валют", "Currency comparisons", "Comparaisons de monnaies")}</h2><p class="dlist">{cl}</p>'
+        blocks += f'<h2 class="news">{T("Сравнения валют", "Currency comparisons", "Comparaisons de monnaies", "Comparaciones de monedas")}</h2><p class="dlist">{cl}</p>'
 
     src = T("Источник рыночных данных: CoinGecko. Приведено справочно.",
             "Market data source: CoinGecko. For reference.",
@@ -980,14 +992,14 @@ def render_compare(a, b, lang):
     def ath(m):
         return f'{fmt_rate(m["ath"])} ({m["ath_chg"]:.0f}%)' if m.get("ath") else "—"
     metrics = [
-        (T("Цена, USDT", "Price, USDT", "Prix, USDT"), fmt_rate(_px(a)) if _px(a) else "—", fmt_rate(_px(b)) if _px(b) else "—"),
-        (T("Изм. 24ч", "Change 24h", "Var. 24 h"), pc(g1.get("24h")), pc(g2.get("24h"))),
-        (T("Изм. 7д", "Change 7d", "Var. 7 j"), pc(ma.get("chg7d")), pc(mb.get("chg7d"))),
-        (T("Изм. 30д", "Change 30d", "Var. 30 j"), pc(ma.get("chg30d")), pc(mb.get("chg30d"))),
-        (T("Капитализация", "Market cap", "Capitalisation"), usd(ma.get("mcap")) + (f' #{ma["rank"]}' if ma.get("rank") else ""),
+        (T("Цена, USDT", "Price, USDT", "Prix, USDT", "Precio, USDT"), fmt_rate(_px(a)) if _px(a) else "—", fmt_rate(_px(b)) if _px(b) else "—"),
+        (T("Изм. 24ч", "Change 24h", "Var. 24 h", "Var. 24h"), pc(g1.get("24h")), pc(g2.get("24h"))),
+        (T("Изм. 7д", "Change 7d", "Var. 7 j", "Var. 7d"), pc(ma.get("chg7d")), pc(mb.get("chg7d"))),
+        (T("Изм. 30д", "Change 30d", "Var. 30 j", "Var. 30d"), pc(ma.get("chg30d")), pc(mb.get("chg30d"))),
+        (T("Капитализация", "Market cap", "Capitalisation", "Capitalización"), usd(ma.get("mcap")) + (f' #{ma["rank"]}' if ma.get("rank") else ""),
          usd(mb.get("mcap")) + (f' #{mb["rank"]}' if mb.get("rank") else "")),
-        (T("Объём 24ч", "Volume 24h", "Volume 24 h"), usd(ma.get("vol")), usd(mb.get("vol"))),
-        (T("Ист. максимум (ATH)", "All-time high", "Plus haut (ATH)"), ath(ma), ath(mb)),
+        (T("Объём 24ч", "Volume 24h", "Volume 24 h", "Volumen 24h"), usd(ma.get("vol")), usd(mb.get("vol"))),
+        (T("Ист. максимум (ATH)", "All-time high", "Plus haut (ATH)", "Máximo histórico (ATH)"), ath(ma), ath(mb)),
     ]
     if g1.get("rsi") is not None or g2.get("rsi") is not None:
         metrics.append(("RSI (14)", f'{g1["rsi"]:.0f}' if g1.get("rsi") is not None else "—",
@@ -999,6 +1011,7 @@ def render_compare(a, b, lang):
     _pref_ru = (f"{ia['name']} {_pa} USDT vs {ib['name']} {_pb} USDT" + (f" на {_cdh}" if _cdh else "") + ". ") if (_pa and _pb) else ""
     _pref_en = (f"{ia['name']} {_pa} USDT vs {ib['name']} {_pb} USDT. ") if (_pa and _pb) else ""
     _pref_fr = (f"{ia['name']} {_pa} USDT contre {ib['name']} {_pb} USDT. ") if (_pa and _pb) else ""
+    _pref_es = (f"{ia['name']} {_pa} USDT vs {ib['name']} {_pb} USDT. ") if (_pa and _pb) else ""
     if ru:
         title = f"{ia['name']} ({ta}) vs {ib['name']} ({tb}) — курсы и сравнение сегодня | {S['name']}"
         desc = (f"{_pref_ru}Сравнение {ia['name']} ({ta}) и {ib['name']} ({tb}): цена, изменение за 24ч/7д/30д, "
@@ -1006,6 +1019,13 @@ def render_compare(a, b, lang):
         h1, lead = f"{ia['name']} vs {ib['name']} — сравнение", (f"Сравнение {ia['name']} и {ib['name']} по ключевым показателям — "
             "цена, динамика, капитализация. Справочно, не рекомендация.")
         colh = ("Показатель", ta, tb)
+    elif lang == "es":
+        title = f"{ia['name']} ({ta}) vs {ib['name']} ({tb}) — tasas y comparación hoy | {S['name']}"
+        desc = (f"{_pref_es}Compara {ia['name']} ({ta}) y {ib['name']} ({tb}): precio, variación 24h/7d/30d, "
+                f"capitalización, volumen, ATH. Datos BestChange y CoinGecko.")
+        h1, lead = f"{ia['name']} vs {ib['name']} — comparación", (f"Comparando {ia['name']} y {ib['name']} en métricas clave — "
+            "precio, dinámica, capitalización. De referencia, no es consejo.")
+        colh = ("Métrica", ta, tb)
     elif lang in ("en", "es"):
         title = f"{ia['name']} ({ta}) vs {ib['name']} ({tb}) — rates and comparison today | {S['name']}"
         desc = (f"{_pref_en}Compare {ia['name']} ({ta}) and {ib['name']} ({tb}): price, 24h/7d/30d change, market cap, "
@@ -1024,7 +1044,7 @@ def render_compare(a, b, lang):
              f'</tr></thead><tbody>{rows}</tbody></table></div>')
     rel = (f'<p class="related"><a href="{cpage(lang, a)}">{ia["name"]} {ta}</a> · '
            f'<a href="{cpage(lang, b)}">{ib["name"]} {tb}</a> · '
-           f'<a href="{PREF[lang]}/lidery-rynka/">{T("Лидеры рынка", "Market leaders", "Leaders du marché")}</a></p>')
+           f'<a href="{PREF[lang]}/lidery-rynka/">{T("Лидеры рынка", "Market leaders", "Leaders du marché", "Líderes del mercado")}</a></p>')
     crumbs = jsonld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": tr(lang, "monitor"), "item": BASE_URL + PREF[lang] + "/"},
         {"@type": "ListItem", "position": 2, "name": f"{ta} vs {tb}", "item": BASE_URL + PREF[lang] + path}]})
@@ -1047,6 +1067,8 @@ FNG_CLASS_RU = {"Extreme Fear": "Крайний страх", "Fear": "Страх
                 "Greed": "Жадность", "Extreme Greed": "Крайняя жадность"}
 FNG_CLASS_FR = {"Extreme Fear": "Peur extrême", "Fear": "Peur", "Neutral": "Neutre",
                 "Greed": "Avidité", "Extreme Greed": "Avidité extrême"}
+FNG_CLASS_ES = {"Extreme Fear": "Miedo extremo", "Fear": "Miedo", "Neutral": "Neutral",
+                "Greed": "Codicia", "Extreme Greed": "Codicia extrema"}
 
 
 def _fng_color(v):
@@ -1059,7 +1081,8 @@ def fng_widget(lang):
     v, ru = FNG["value"], lang == "ru"
     lab = (FNG_CLASS_RU.get(FNG.get("class", ""), FNG.get("class", "")) if ru
            else (FNG_CLASS_FR.get(FNG.get("class", ""), FNG.get("class", "")) if lang == "fr"
-           else FNG.get("class", "")))
+           else (FNG_CLASS_ES.get(FNG.get("class", ""), FNG.get("class", "")) if lang == "es"
+           else FNG.get("class", ""))))
     col = _fng_color(v)
     h = ("Índice de miedo y codicia" if lang == "es" else ("Индекс страха и жадности" if ru else ("Fear & Greed Index" if lang == "en" else "Indice de peur et d'avidité")))
     return (f'<div class="conv dosblue dosborder"><h3><a href="{PREF[lang]}/nastroeniya/">{h}</a></h3>'
@@ -1079,6 +1102,14 @@ def render_fng(lang):
         scale = [("0–24", "Крайний страх"), ("25–44", "Страх"), ("45–54", "Нейтрально"),
                  ("55–74", "Жадность"), ("75–100", "Крайняя жадность")]
         src = "Источник: alternative.me. Приведено справочно, не является рекомендацией."
+    elif lang == "es":
+        title = f"Índice de miedo y codicia cripto — hoy | {S['name']}"
+        desc = "Índice de miedo y codicia cripto — ánimo del mercado hoy en escala 0–100. Fuente: alternative.me."
+        h1, lead = "Índice de miedo y codicia", ("El índice muestra el ánimo del mercado cripto en escala 0–100: bajo es "
+            "miedo (a menudo sobreventa), alto es codicia (sobrecalentado). Una guía, no una señal.")
+        scale = [("0–24", "Miedo extremo"), ("25–44", "Miedo"), ("45–54", "Neutral"),
+                 ("55–74", "Codicia"), ("75–100", "Codicia extrema")]
+        src = "Fuente: alternative.me. De referencia, no es consejo."
     elif lang in ("en", "es"):
         title = f"Crypto Fear & Greed Index — today | {S['name']}"
         desc = "Crypto Fear & Greed Index — market sentiment today on a 0–100 scale. Source: alternative.me."
@@ -1147,6 +1178,14 @@ def render_halving(lang):
                + ("<p class=\"related\"><a href=\"/blog/halving-bitcoin/\">Подробнее о халвинге в блоге</a></p>"
                   if "halving-bitcoin" in PUB_SLUGS.get("ru", set()) else ""))
         src = "Счётчик оценочный: считается по текущей высоте блока и среднему времени блока (~10 мин)."
+    elif lang == "es":
+        title = f"Halving de Bitcoin — cuenta atrás | {S['name']}"
+        desc = "Cuánto falta para el próximo halving de Bitcoin: cuenta atrás por bloques y tiempo. Qué es el halving y cómo afecta al mercado."
+        h1, lead = "Halving de Bitcoin — cuenta atrás", ("El halving es el recorte programado del 50% de la recompensa por bloque de Bitcoin, "
+            "cada 210.000 bloques (aprox. cada 4 años). El próximo es en el bloque 1.050.000.")
+        exp = ("<h2 class=\"news\">Qué es el halving</h2><p>Cada 210.000 bloques la recompensa minera se reduce a la mitad, "
+               "bajando la emisión de BTC. Los halvings se asocian a ciclos, pero no hay movimiento garantizado — no es un pronóstico.</p>")
+        src = "Cuenta atrás estimada: según la altura actual y el tiempo medio por bloque (~10 min)."
     elif lang in ("en", "es"):
         title = f"Bitcoin halving countdown — time left | {S['name']}"
         desc = "How long until the next Bitcoin halving: a countdown by blocks and time. What halving is and how it affects the market."
@@ -1384,6 +1423,10 @@ def history_table(slug, lang):
     if lang == "ru":
         h, cols = f"Курс {tk} по {per_ru} (USDT)", (per_en, "Закрытие", "Минимум", "Максимум", "Изм.")
         lead = f"Динамика цены {tk} в USDT по данным мониторинга BestChange (справочно)."
+    elif lang == "es":
+        h = f"Tasa de {tk} {'mensual' if by_month else 'diaria'} (USDT)"
+        cols = (("Mes" if by_month else "Fecha"), "Cierre", "Mínimo", "Máximo", "Var.")
+        lead = f"Evolución del precio de {tk} en USDT según el monitoreo BestChange (de referencia)."
     elif lang in ("en", "es"):
         h = f"{tk} {'monthly' if by_month else 'daily'} rate (USDT)"
         cols = ("Month" if by_month else "Date", "Close", "Low", "High", "Chg.")
@@ -1420,6 +1463,10 @@ def currency_chart(slug, info, lang):
             return (f'<h2 class="news">Динамика цены {info["ticker"]} (USDT)</h2>'
                     f'<p class="updnote">📈 Идёт накопление данных — график появится, когда наберётся история '
                     f'(точек сейчас: {len(pts)}). Обновляется ежедневно.</p>') if pts else ""
+        if lang == "es":
+            return (f'<h2 class="news">Tendencia del precio de {info["ticker"]} (USDT)</h2>'
+                    f'<p class="updnote">Recopilando datos — el gráfico aparecerá cuando haya historial '
+                    f'(puntos ahora: {len(pts)}). Se actualiza a diario.</p>') if pts else ""
         if lang == "en":
             return (f'<h2 class="news">{info["ticker"]} price trend (USDT)</h2>'
                     f'<p class="updnote">📈 Collecting data — the chart will appear once history builds up '
@@ -1441,6 +1488,13 @@ def currency_chart(slug, info, lang):
         note = (f"1 {info['ticker']} = <b>{fmt_rate(last)}</b> USDT · за период: "
                 f'<b class="{cls}">{sign}{chg:.1f}%</b>. Данные BestChange, обновление ежечасно. '
                 "Наведите на график — покажет цену и время.")
+    elif lang == "es":
+        title = f"Tendencia del precio de {info['ticker']} (USDT)"
+        ranges = [("24h", "24h"), ("7d", "7d"), ("30d", "30d"), ("1y", "1a"),
+                  ("3y", "3a"), ("5y", "5a"), ("10y", "10a"), ("all", "Todo")]
+        note = (f"1 {info['ticker']} = <b>{fmt_rate(last)}</b> USDT · variación: "
+                f'<b class="{cls}">{sign}{chg:.1f}%</b>. Datos BestChange, cada hora. '
+                "Pasa el cursor sobre el gráfico para ver precio y hora.")
     elif lang in ("en", "es"):
         title = f"{info['ticker']} price trend (USDT)"
         ranges = [("24h", "24h"), ("7d", "7d"), ("30d", "30d"), ("1y", "1y"),
@@ -1654,28 +1708,28 @@ def currency_metrics_block(slug, info, lang):
         return f'<span class="{"up" if v >= 0 else "down"}">{"+" if v >= 0 else ""}{v:.1f}%</span>'
     rows = []
     if "24h" in m:
-        rows.append((T("Изменение за 24ч", "Change 24h", "Variation 24 h"), pct(m["24h"])))
+        rows.append((T("Изменение за 24ч", "Change 24h", "Variation 24 h", "Variación 24h"), pct(m["24h"])))
     if "7d" in m:
-        rows.append((T("Изменение за 7д", "Change 7d", "Variation 7 j"), pct(m["7d"])))
+        rows.append((T("Изменение за 7д", "Change 7d", "Variation 7 j", "Variación 7d"), pct(m["7d"])))
     if "30d" in m:
-        rows.append((T("Изменение за 30д", "Change 30d", "Variation 30 j"), pct(m["30d"])))
+        rows.append((T("Изменение за 30д", "Change 30d", "Variation 30 j", "Variación 30d"), pct(m["30d"])))
     if "vol" in m:
-        rows.append((T("Волатильность (7д)", "Volatility (7d)", "Volatilité (7 j)"), f'{m["vol"]:.1f}%'))
+        rows.append((T("Волатильность (7д)", "Volatility (7d)", "Volatilité (7 j)", "Volatilidad (7d)"), f'{m["vol"]:.1f}%'))
     if "trend" in m:
-        lbl = {"up": ("Рост", "Uptrend", "Hausse"), "down": ("Снижение", "Downtrend", "Baisse"), "flat": ("Боковик", "Flat", "Plat")}[m["trend"]]
-        rows.append((T("Тренд (SMA)", "Trend (SMA)", "Tendance (SMA)"), lbl[0] if ru else (lbl[1] if en else lbl[2])))
+        lbl = {"up": ("Рост", "Uptrend", "Hausse", "Subida"), "down": ("Снижение", "Downtrend", "Baisse", "Bajada"), "flat": ("Боковик", "Flat", "Plat", "Lateral")}[m["trend"]]
+        rows.append((T("Тренд (SMA)", "Trend (SMA)", "Tendance (SMA)", "Tendencia (SMA)"), lbl[3] if lang == "es" else (lbl[0] if ru else (lbl[1] if en else lbl[2]))))
     if "rsi" in m:
         z = ""
         if m["rsi"] >= 70:
-            z = T(" · зона перекупленности", " · overbought zone", " · zone de surachat")
+            z = T(" · зона перекупленности", " · overbought zone", " · zone de surachat", " · zona de sobrecompra")
         elif m["rsi"] <= 30:
-            z = T(" · зона перепроданности", " · oversold zone", " · zone de survente")
+            z = T(" · зона перепроданности", " · oversold zone", " · zone de survente", " · zona de sobreventa")
         rows.append(("RSI (14)", f'{m["rsi"]:.0f}{z}'))
     if "low" in m and "high" in m:
-        rows.append((T("Диапазон макс–мин", "Range (min–max)", "Plage min–max"),
+        rows.append((T("Диапазон макс–мин", "Range (min–max)", "Plage min–max", "Rango máx–mín"),
                      f'{fmt_rate(m["low"])} – {fmt_rate(m["high"])} USDT'))
     body = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in rows)
-    h = T(f"Технические показатели {t}", f"{t} technical metrics", f"Indicateurs techniques {t}")
+    h = T(f"Технические показатели {t}", f"{t} technical metrics", f"Indicateurs techniques {t}", f"Indicadores técnicos de {t}")
     disc = T("Показатели рассчитаны по данным мониторинга BestChange, справочно. Не являются сигналом "
              "или финансовой рекомендацией.",
              "Metrics computed from BestChange monitoring data, for reference. Not a signal or financial advice.",
@@ -1726,15 +1780,15 @@ def market_block(slug, info, lang):
     cap = _human_usd(d["mcap"], lang)
     if d.get("rank"):
         cap += f' <span class="tk">#{d["rank"]}</span>'
-    rows.append((T("Капитализация", "Market cap", "Capitalisation"), cap))
+    rows.append((T("Капитализация", "Market cap", "Capitalisation", "Capitalización"), cap))
     if d.get("vol"):
-        rows.append((T("Объём торгов (24ч)", "Volume (24h)", "Volume (24 h)"), _human_usd(d["vol"], lang)))
+        rows.append((T("Объём торгов (24ч)", "Volume (24h)", "Volume (24 h)", "Volumen (24h)"), _human_usd(d["vol"], lang)))
     if d.get("ath"):
         athc = d.get("ath_chg")
-        note = f' <span class="down">{athc:.0f}% {T("от ATH", "from ATH", "vs ATH")}</span>' if athc is not None else ""
-        rows.append((T("Исторический максимум", "All-time high", "Plus haut historique"), f'{fmt_rate(d["ath"])} USD{note}'))
+        note = f' <span class="down">{athc:.0f}% {T("от ATH", "from ATH", "vs ATH", "del ATH")}</span>' if athc is not None else ""
+        rows.append((T("Исторический максимум", "All-time high", "Plus haut historique", "Máximo histórico"), f'{fmt_rate(d["ath"])} USD{note}'))
     if d.get("supply"):
-        rows.append((T("В обращении", "Circulating supply", "En circulation"), f'{_human_num(d["supply"], lang)} {t}'))
+        rows.append((T("В обращении", "Circulating supply", "En circulation", "En circulación"), f'{_human_num(d["supply"], lang)} {t}'))
     for pk, ru_l, en_l, fr_l in (("chg7d", "Изменение 7д (биржи)", "Change 7d (market)", "Variation 7 j (marché)"),
                                  ("chg30d", "Изменение 30д (биржи)", "Change 30d (market)", "Variation 30 j (marché)")):
         v = d.get(pk)
@@ -1742,7 +1796,7 @@ def market_block(slug, info, lang):
             cls = "up" if v >= 0 else "down"
             rows.append((ru_l if ru else (en_l if en else fr_l), f'<span class="{cls}">{"+" if v >= 0 else ""}{v:.1f}%</span>'))
     body = "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in rows)
-    h = T(f"Рыночные данные {t}", f"{t} market data", f"Données de marché {t}")
+    h = T(f"Рыночные данные {t}", f"{t} market data", f"Données de marché {t}", f"Datos de mercado de {t}")
     src = T("Источник: CoinGecko. Приведено справочно.", "Source: CoinGecko. For reference.",
             "Source : CoinGecko. À titre indicatif.")
     return (f'<h2 class="news">{h}</h2>'
@@ -2033,8 +2087,7 @@ def trust_bar(lang):
                  f'a título indicativo (no es una oferta).')
         facts = (f'<span>Monedas: <b>{nc}</b></span><span>Direcciones: <b>{nd}</b></span>'
                  f'<span>{updated_str(lang)}</span>'
-                 f'<span><a href="{PREF[lang]}/redakciya/">Metodología y fuente de datos →</a></span>'
-                 f'<span>Publicidad. Anunciante: IE Zuborev N.S. erid: 2VtzqvK5m96</span>')
+                 f'<span><a href="{PREF[lang]}/redakciya/">Metodología y fuente de datos →</a></span>')
     elif lang in ("en", "es"):
         intro = (f'<b>RateScout</b> is a free directory of crypto and cash exchange rates '
                  f'based on <b>BestChange</b> exchange-monitoring data. It tracks <b>{nc}</b> currencies '
@@ -2064,8 +2117,7 @@ def ad_mark(lang):
         return ('<p class="updnote admark">Реклама. Рекламодатель: ИП Зуборев Н.С. '
                 'erid: 2VtzqvK5m96</p>')
     if lang == "es":
-        return ('<p class="updnote admark">Publicidad. Anunciante: IE Zuborev N.S. '
-                'erid: 2VtzqvK5m96</p>')
+        return ""
     if lang == "en":
         return ('<p class="updnote admark">Advertising. Advertiser: IE Zuborev N.S. '
                 'erid: 2VtzqvK5m96</p>')
@@ -2283,23 +2335,48 @@ document.body.insertBefore(d,document.body.firstChild);
 }catch(e){}})();</script>""")
 
 
+def geo_banner(lang):
+    """Экосистема: предложение версии под язык браузера (RU/EN/FR/ES).
+    ES-сайт: ru -> ratescout.ru, fr -> info.gf, es -> ничего, иначе -> EN по умолчанию."""
+    if lang != "es":
+        return ""
+    return ("""<script>(function(){try{
+var L=(navigator.languages&&navigator.languages[0])||navigator.language||"";
+if(!L)return;
+var ua=navigator.userAgent||"";if(/bot|crawl|spider|slurp|bing|yandex|google/i.test(ua))return;
+if(localStorage.getItem("rs_geobanner")==="1")return;
+var code=L.slice(0,2).toLowerCase(),t="";
+if(code==="es")return;
+if(code==="ru")t='&#127479;&#127482; <a href="https://ratescout.ru/">Русская версия — ratescout.ru</a>';
+else if(code==="fr")t='&#127467;&#127479; <a href="https://ratescout.info.gf/">Version fran&ccedil;aise — ratescout.info.gf</a>';
+else t='&#127468;&#127463; <a href="https://ratescout.ru/en/">English version — ratescout.ru/en/</a>';
+var d=document.createElement("div");d.id="langbanner";
+d.innerHTML='<span>'+t+'</span> <button type="button" aria-label="Cerrar">X</button>';
+d.querySelector("button").onclick=function(){try{localStorage.setItem("rs_geobanner","1");}catch(e){}d.remove();};
+document.body.insertBefore(d,document.body.firstChild);
+}catch(e){}})();</script>""")
+
+
 def header(lang, path):
     # single-button cycle: RU -> EN -> FR (info.gf) -> EN
     if lang == "ru":
         _next, _href = "en", f"{PREF['en']}{path}"
         _label = "EN"
-    elif lang in ("en", "es"):
+    elif lang == "en":
         # strip /en prefix from path for fr external
         _p = path  # path already without prefix
         _next, _href = "fr", f"{FR_BASE}{_p}"
         _label = "FR"
     elif lang == "es":
-        _next, _href = "ru", f"https://ratescout.ru{path}"
+        switch = (f'<span class="langsw cur">ES</span> · '
+                  f'<a class="langsw" data-lang="ru" href="https://ratescout.ru{path}">RU</a> · '
+                  f'<a class="langsw" data-lang="en" href="https://ratescout.ru/en{path}">EN</a>')
         _label = "RU"
     else:  # fr internal (if ever)
         _next, _href = "ru", f"{PREF['ru']}{path}"
         _label = "RU"
-    switch = f'<a class="langsw" data-lang="{_next}" href="{_href}">{_label}</a>' 
+    if lang != "es":
+        switch = f'<a class="langsw" data-lang="{_next}" href="{_href}">{_label}</a>' 
     _tld = S["domain"][len(S["name"].lower()):] if S["domain"].lower().startswith(S["name"].lower()) else ""
     _blog_li = f'<li><a href="{PREF[lang]}/blog/">{tr(lang,"nav_blog")}</a></li>' if lang in ("ru", "en") else ""
     _obzor_li = f'<li><a href="{PREF[lang]}/obzor/sutki/">{tr(lang,"nav_reviews")}</a></li>' if lang in ("ru", "en") else ""
@@ -2327,7 +2404,7 @@ def header(lang, path):
     <li><a href="{PREF[lang]}/raskrytie/">{tr(lang,'nav_disc')}</a></li>
   </ul>
 </div>
-{lang_banner(lang)}"""
+{lang_banner(lang)}{geo_banner(lang)}"""
 
 
 def search_box(lang):
@@ -2434,6 +2511,15 @@ def render_koshelki(lang):
             "не рекомендация; выбор — за вами.")
         coln = ("Кошелёк", "Описание", "")
         go = "Перейти"
+    elif lang == "es":
+        title = f"Billeteras cripto: dónde conseguir una y cómo elegir | {S['name']}"
+        desc = ("Una selección de billeteras cripto para guardar y retirar: Telegram Wallet, Trust Wallet, MetaMask, Ledger, "
+                "Exodus — descripciones neutrales y enlaces oficiales. De referencia.")
+        h1, lead = "Billeteras cripto — dónde conseguir una", ("Para intercambiar y guardar cripto necesitas una billetera. Abajo hay "
+            "opciones populares con descripciones cortas y enlaces oficiales. Es información de referencia, no un consejo; "
+            "la elección es tuya.")
+        coln = ("Billetera", "Descripción", "")
+        go = "Abrir"
     elif en or lang == "es":
         title = f"Crypto wallets: where to get one and how to choose | {S['name']}"
         desc = ("A pick of crypto wallets to keep and cash out: Telegram Wallet, Trust Wallet, MetaMask, Ledger, "
@@ -2452,9 +2538,14 @@ def render_koshelki(lang):
             "officiels. Information indicative, pas un conseil ; à vous de choisir.")
         coln = ("Portefeuille", "Description", "")
         go = "Ouvrir"
+    WALLET_ES = {"Telegram Wallet": "Billetera dentro de Telegram, sin instalar apps: TON, USDT, BTC.",
+                   "Trust Wallet": "Popular billetera móvil multimoneda no custodial.",
+                   "MetaMask": "Billetera para Ethereum y redes EVM — extensión y app.",
+                   "Ledger": "Billetera física (en frío) para guardar a largo plazo.",
+                   "Exodus": "Billetera multimoneda de escritorio y móvil con intercambio integrado."}
     rows = ""
     for name, dru, den, dfr, url, is_tg in wallets:
-        d = dru if ru else (den if en else dfr)
+        d = WALLET_ES.get(name, den) if lang == "es" else (dru if ru else (den if en else dfr))
         if is_tg:
             link = (f'<a class="js-wallet-ref" href="{url}" data-ref="{WALLET_URL}" target="_blank" '
                     f'rel="nofollow noopener">{go}</a>'
@@ -2499,6 +2590,18 @@ def footer(lang):
         fine = ("18+. Информация носит справочный характер, не является рекламой, офертой или финансовой "
                 f"рекомендацией. Курсы меняются. © {S['name']} {S['domain']}.<br>"
                 f"<span class=\"erid\">Владелец сайта: {S.get('owner_status','')} {S.get('owner','')}, ИНН {S.get('owner_inn','')}.</span>")
+    elif lang == "es":
+        disc = ("RateScout es un servicio independiente de monitoreo de tasas. No somos una oficina de cambio ni "
+                "procesamos operaciones. Los enlaces llevan a BestChange (un monitoreo de tasas de oficinas de cambio); "
+                "a través del programa de afiliados podemos ganar una comisión.")
+        links = (f'<a href="{PREF[lang]}/o-servise/">Acerca de</a> · <a href="{PREF[lang]}/aml/">Verificación AML</a> · '
+                 f'<a href="{PREF[lang]}/vidzhet/">Widget</a> · <a href="{PREF[lang]}/redakciya/">Redacción</a> · '
+                 f'<a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Canal de Telegram</a> · '
+                 f'<a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · '
+                 f'<a href="{PREF[lang]}/raskrytie/">Aviso legal</a> · '
+                 f'<a href="{PREF[lang]}/politika/">Privacidad</a> · <a href="{PREF[lang]}/usloviya/">Términos</a>')
+        fine = ("18+. Información solo de referencia; no es publicidad, oferta ni asesoría financiera. "
+                f"Las tasas cambian. © {S['name']} {S['domain']}." )
     elif lang in ("en", "es"):
         disc = ("RateScout is an independent rate-monitoring service. We are not an exchange office and do not "
                 "process transactions. Links lead to BestChange (a monitor of exchange office rates); through the "
@@ -2510,20 +2613,6 @@ def footer(lang):
         fine = ("18+. Information is for reference only and is not advertising, an offer or financial advice. "
                 f"Rates change. © {S['name']} {S['domain']}.<br>"
                 f"<span class=\"erid\">Site owner: {S.get('owner','')} (self-employed, RU tax ID {S.get('owner_inn','')}).</span>")
-    elif lang == "es":
-        disc = ("RateScout es un servicio independiente de monitoreo de tasas. No somos una oficina de cambio ni "
-                "procesamos operaciones. Los enlaces llevan a BestChange (un monitoreo de tasas de oficinas de cambio); "
-                "a través del programa de afiliados podemos ganar una comisión. Publicidad. Anunciante: IE Zuborev N.S. "
-                "erid: 2VtzqvK5m96")
-        links = (f'<a href="{PREF[lang]}/o-servise/">Acerca de</a> · <a href="{PREF[lang]}/aml/">Verificación AML</a> · '
-                 f'<a href="{PREF[lang]}/vidzhet/">Widget</a> · <a href="{PREF[lang]}/redakciya/">Redacción</a> · '
-                 f'<a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Canal de Telegram</a> · '
-                 f'<a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · '
-                 f'<a href="{PREF[lang]}/raskrytie/">Aviso legal</a> · '
-                 f'<a href="{PREF[lang]}/politika/">Privacidad</a> · <a href="{PREF[lang]}/usloviya/">Términos</a>')
-        fine = ("18+. Información solo de referencia; no es publicidad, oferta ni asesoría financiera. "
-                f"Las tasas cambian. © {S['name']} {S['domain']}.<br>"
-                f"<span class=\"erid\">Propietario del sitio: {S.get('owner','')}.</span>")
     else:
         disc = ("RateScout est un service indépendant de suivi des taux de change. Nous ne sommes pas un bureau "
                 "de change et n'effectuons aucune opération. Les liens mènent vers BestChange (un moniteur des taux "
@@ -2543,7 +2632,7 @@ def footer(lang):
   <div class="links">{links}</div>
   {partner_block(lang)}
   <div class="fine">{fine}</div>
-  <div class="counters">{LIVEINTERNET}</div>
+    <div class="counters">{"" if lang == "es" else LIVEINTERNET}</div>
 </div>
 </div>
 <script src="/assets/catalog.js?v={VER['cat']}"></script>
@@ -2578,7 +2667,7 @@ def converter_html(lang, preset_from="", rates=None):
   <label>{tr(lang,'get')}<select id="cTo"></select></label>
   {amt}
   {res}
-  <a class="cta" id="cGo" href="{bc_host(lang)}/?p={REF}&erid={ERID}" target="_blank" rel="nofollow noopener sponsored">{tr(lang,'find_rate')}</a>
+  <a class="cta" id="cGo" href="{bc_host(lang)}/?p={REF}{x_erid()}" target="_blank" rel="nofollow noopener sponsored">{tr(lang,'find_rate')}</a>
   {ad_mark(lang)}
 </div>{rjson}"""
 
@@ -3690,7 +3779,12 @@ def review_content(lang, days, ru_word, en_word):
             continue
         movers.append((slug, pct))
     now = datetime.now(timezone.utc).strftime("%d.%m.%Y")
-    if lang == "ru":
+    if lang == "es":
+        _per_es = {1: "últimas 24 horas", 7: "últimos 7 días", 30: "últimos 30 días"}.get(days, en_word)
+        h1 = f"Resumen del mercado cripto — {_per_es}"
+        desc = (f"Qué criptomonedas subieron y bajaron en {_per_es}: top subidas y bajadas con gráficos. "
+                f"Datos BestChange, al {now}.")
+    elif lang == "ru":
         h1 = f"Обзор рынка криптовалют за {ru_word}"
         desc = (f"Какие криптовалюты выросли и упали за {ru_word}: топ роста и падения с графиками. "
                 f"Данные мониторинга BestChange, на {now}.")
@@ -3699,16 +3793,18 @@ def review_content(lang, days, ru_word, en_word):
         desc = (f"Which cryptocurrencies rose and fell over the past {en_word}: top gainers and losers with charts. "
                 f"BestChange data, as of {now}.")
     if len(movers) < 5:                       # мало истории — честно показываем накопление, в Дзен не публикуем
-        note = (f"Идёт накопление статистики — обзор появится, когда наберётся история за {ru_word} по большему "
+        note = ((f"Recopilando datos — el resumen aparecerá cuando haya suficiente historial de {_per_es} para más monedas.")
+                if lang == "es" else
+                (f"Идёт накопление статистики — обзор появится, когда наберётся история за {ru_word} по большему "
                 f"числу валют." if lang == "ru" else
-                f"Collecting data — the review will appear once enough history for the past {en_word} accumulates.")
+                f"Collecting data — the review will appear once enough history for the past {en_word} accumulates."))
         return {"h1": h1, "desc": desc, "date": now, "has_data": False, "inner": f'<p class="updnote">{note}</p>'}
     movers.sort(key=lambda x: x[1], reverse=True)
     ups = [m for m in movers if m[1] > 0][:8]
     downs = sorted([m for m in movers if m[1] < 0], key=lambda x: x[1])[:8]
     n_up = sum(1 for m in movers if m[1] > 0)
     n_dn = sum(1 for m in movers if m[1] < 0)
-    th = ("Валюта", "Изм.", "График") if lang == "ru" else ("Currency", "Chg.", "Chart")
+    th = (("Moneda", "Var.", "Gráfico") if lang == "es" else (("Валюта", "Изм.", "График") if lang == "ru" else ("Currency", "Chg.", "Chart")))
 
     def _rows(items):
         out = ""
@@ -3733,6 +3829,11 @@ def review_content(lang, days, ru_word, en_word):
                    f"Лидеры роста: {up_lead}. Сильнее всех упали: {dn_lead}. "
                    f"Цены — в USDT по данным мониторинга BestChange.")
         h_up, h_dn, allc = "Топ роста", "Топ падения", "Все графики по валютам →"
+    elif lang == "es":
+        summary = (f"En {_per_es}, de {len(movers)} monedas seguidas {n_up} subieron y {n_dn} bajaron. "
+                   f"Top subidas: {up_lead}. Mayores caídas: {dn_lead}. "
+                   f"Precios en USDT según el monitoreo BestChange.")
+        h_up, h_dn, allc = "Top subidas", "Top bajadas", "Todos los gráficos →"
     else:
         summary = (f"Over the past {en_word}, of {len(movers)} tracked currencies {n_up} rose and {n_dn} fell. "
                    f"Top gainers: {up_lead}. Biggest drops: {dn_lead}. Prices in USDT per BestChange monitoring.")
@@ -3747,8 +3848,9 @@ def review_content(lang, days, ru_word, en_word):
     site_url = f"{BASE_URL}/obzor/{sid}/"
     _li = lambda items: "".join(
         f'<li>{CUR[s]["name"]} ({CUR[s]["ticker"]}): {"+" if p >= 0 else ""}{p:.1f}%</li>' for s, p in items)
-    full = ("Полный обзор с интерактивными графиками — на сайте: " if lang == "ru"
-            else "Full review with interactive charts on the site: ")
+    full = ("Resumen completo con gráficos interactivos en el sitio: " if lang == "es"
+            else ("Полный обзор с интерактивными графиками — на сайте: " if lang == "ru"
+            else "Full review with interactive charts on the site: "))
     dzen = (f'<p>{summary}</p>'
             f'<h3>{h_up}</h3><ul>{_li(ups)}</ul>'
             f'<h3>{h_dn}</h3><ul>{_li(downs)}</ul>'
@@ -3979,6 +4081,20 @@ def render_svodka(lang):
         idx_note = "Индекс появится с накоплением истории."
         stb_note = "Пока нет данных по стейблкоинам."
         mood_g, mood_r, mood_n = "🟢 Рынок в плюсе", "🔴 Рынок в минусе", "⚪ Смешанный рынок"
+    elif lang == "es":
+        h1 = "Resumen del mercado cripto"
+        title = f"{h1} — liquidez, stablecoins, volatilidad | {S['name']}"
+        desc = ("Resumen del mercado cripto: índice de ánimo, ranking de liquidez, paridad de stablecoins con el dólar y "
+                "volatilidad 24h. Datos del monitoreo BestChange.")
+        t_liq = ("Moneda", "Cambistas", "Precio, USDT")
+        t_stb = ("Stablecoin", "Precio, USDT", "Desv. de $1")
+        t_vol = ("Moneda", "Var. 24h")
+        h_idx, h_liq, h_stb, h_vol = ("Índice del mercado", "Ranking de liquidez",
+                                      "Stablecoins: paridad con el dólar", "Volatilidad 24h")
+        allc = "Todos los gráficos →"
+        idx_note = "El índice aparecerá con el historial."
+        stb_note = "Aún sin datos de stablecoins."
+        mood_g, mood_r, mood_n = "Mercado en verde", "Mercado en rojo", "Mercado mixto"
     elif lang in ("en", "es"):
         h1 = "Crypto market summary"
         title = f"{h1} — liquidity, stablecoins, volatility | {S['name']}"
@@ -4592,6 +4708,32 @@ FAQ_ITEMS = {
          "SBP is Russia's Faster Payments System: instant transfers between banks by phone number. Many exchangers pay out "
          "rubles via SBP — fast and convenient; mind your bank's limits."),
     ],
+    "es": [
+        ("¿Qué red USDT es la más barata para transferencias?",
+         "Generalmente TRC20 (TRON): comisión baja y estable. BEP20 (BNB Smart Chain) también es barata. ERC20 (Ethereum) "
+         "es más cara y su comisión depende de la carga. Las redes del remitente y del destinatario deben coincidir."),
+        ("¿Cuánto tarda una transferencia USDT?",
+         "En TRC20 suele llegar en 1–5 minutos tras las confirmaciones. La velocidad depende de la red, su carga y de "
+         "cuántas confirmaciones exija el destinatario o el cambista."),
+        ("¿Qué es la reserva de un cambista?",
+         "Cuánta moneda tiene disponible el cambista para una dirección ahora mismo. Si la reserva es menor que tu monto, "
+         "el intercambio no se realizará o tardará. Revisa la reserva junto con la tasa y la calificación."),
+        ("¿En qué se diferencia un cambista de un exchange?",
+         "El cambista completa la operación a tasa y reserva fijas — rápido y sin órdenes. Un exchange es una plataforma "
+         "con libro de órdenes donde compradores y vendedores fijan el precio. Para un intercambio puntual se suele elegir un cambista."),
+        ("¿Cómo elijo la mejor tasa de cambio?",
+         "Mira no solo la mejor tasa, sino la reserva, la calificación y las reseñas del cambista, además de los límites y "
+         "la comisión de red. Una tasa demasiado buena puede significar poca reserva o condiciones ocultas. El monitoreo BestChange ayuda a comparar."),
+        ("¿Qué es la verificación AML de una dirección cripto?",
+         "Evalúa si una dirección o transacción está vinculada a fraude, darknet y sanciones. Se hace antes de recibir o "
+         "intercambiar un monto grande para reducir el riesgo de monedas «sucias» y fondos congelados."),
+        ("¿Es seguro intercambiar cripto en un cambista?",
+         "El riesgo es menor si eliges un cambista con alta calificación, historial y reserva suficiente del monitoreo, y haces "
+         "una verificación AML para cripto. Nadie garantiza nada — decides intercambiar por tu cuenta."),
+        ("¿Qué es SEPA y cómo se relaciona con el intercambio?",
+         "SEPA es la zona de pagos en euros: transferencias bancarias rápidas en EUR. Muchos cambistas pagan en euros vía "
+         "SEPA o tarjetas — rápido y cómodo; ten en cuenta los límites de tu banco."),
+    ],
     "fr": [
         ("Quel réseau USDT est le moins cher pour transférer ?",
          "Généralement TRC20 (TRON) — des frais de réseau bas et stables. BEP20 (BNB Smart Chain) est aussi bon marché. "
@@ -4962,6 +5104,28 @@ def render_editorial(lang):
 <p class="related"><a href="{PREF[lang]}/raskrytie/">Раскрытие и дисклеймеры</a> ·
    <a href="{PREF[lang]}/politika/">Политика конфиденциальности</a></p>"""
         crumb = "О редакции"
+    elif lang == "es":
+        title = "La redacción de RateScout — quién lleva el sitio y cómo trabajamos"
+        desc = "Redacción RateScout: directorio independiente de tasas. Principios, fuentes de datos, actualización y contactos."
+        body = f"""<h1>La redacción de RateScout</h1>
+<p><b>RateScout</b> es un directorio independiente de tasas de cambio de criptomonedas y monedas. No somos una oficina
+   de cambio ni procesamos operaciones: nuestro trabajo es reunir y presentar datos con claridad para que decidas tú.</p>
+<h2>Cómo trabajamos</h2>
+<ul>
+  <li><b>Fuente de datos</b> — el monitoreo de cambistas <a href="{PREF[lang]}/o-servise/">BestChange</a>: tasas,
+      reservas y número de cambistas. Las tasas se actualizan <b>cada hora</b>.</li>
+  <li><b>Neutralidad.</b> No calificamos cambistas ni damos consejos financieros — solo datos de referencia.</li>
+  <li><b>Transparencia.</b> Los enlaces llevan a BestChange; por el programa de afiliados podemos ganar una
+      comisión (<a href="{PREF[lang]}/raskrytie/">aviso legal</a>).</li>
+  <li><b>Actualidad.</b> Guías y páginas de referencia se mantienen al día; las páginas de tasas muestran la última actualización.</li>
+</ul>
+<h2>Para quién es</h2>
+<p>Para quien intercambia cripto y monedas y quiere orientarse rápido en tasas, redes, comisiones y seguridad.</p>
+<h2>Contacto</h2>
+<p>Preguntas, correcciones y avisos de errores — en <a href="mailto:{email}">{email}</a>. Agradecemos comentarios.</p>
+<p class="related"><a href="{PREF[lang]}/raskrytie/">Aviso legal</a> ·
+   <a href="{PREF[lang]}/politika/">Privacidad</a></p>"""
+        crumb = "Redacción"
     else:
         title = "About the RateScout editorial team — who runs the site and how"
         desc = "RateScout editorial team: an independent rate directory. Principles, data sources, updates and contacts."
@@ -5162,8 +5326,8 @@ def geo_ref_script(elem_id, base):
         'var tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||"";'
         'var a=document.getElementById("' + elem_id + '");'
         'if(a&&tz&&R.indexOf(tz)===-1){var b="' + base + '";'
-        'if(b.indexOf("erid=")===-1){b+=((b.indexOf("?")===-1)?"?":"&")+"erid=' + ERID + '";}'
-        'b+=((b.indexOf("?")===-1)?"?":"&")+"p=' + str(REF) + '";'
+        + ('if(b.indexOf("erid=")===-1){b+=((b.indexOf("?")===-1)?"?":"&")+"erid=' + ERID + '";}' if ERID else '')
+        + 'b+=((b.indexOf("?")===-1)?"?":"&")+"p=' + str(REF) + '";'
         'a.href=b;a.rel="nofollow noopener sponsored";}'
         '}catch(e){}})();</script>')
 
@@ -5176,6 +5340,18 @@ def aml_checker(lang):
         cnt = json.load(open(os.path.join(ROOT, "aml-sanctions.json"), encoding="utf-8")).get("count", 0)
     except Exception:                              # noqa: BLE001
         cnt = 0
+    if lang == "es":
+        return ('<div class="amlbox" style="border:2px solid #55ffff;padding:14px;margin:10px 0;background:#001a1a">'
+                '<h2 id="check">Revisar dirección</h2>'
+                '<div class="amlbox" style="border:2px solid #55ffff;padding:14px;margin:10px 0;background:#001a1a">'
+                '<input id="amlAddr" type="text" autocomplete="off" spellcheck="false" placeholder="Pega una dirección cripto (BTC, ETH, TRON, LTC, XMR)" '
+                'style="width:100%;box-sizing:border-box;padding:9px;background:#000;color:#0f0;'
+                'border:1px solid #55ffff;font-family:inherit">'
+                '<button id="amlBtn" type="button" style="margin-top:8px;padding:9px 18px;background:#0000aa;'
+                'color:#fff;border:1px solid #55ffff;cursor:pointer;font-family:inherit">Revisar</button>'
+                '<div id="amlResult" style="margin-top:12px"></div>'
+                f'<p class="updnote">Chequeo básico: formato, lista OFAC ({cnt} direcciones) y datos on-chain. NO es score AML completo.</p>{ad_mark(lang)}</div>'
+                "<script>(function(){var I=" + json.dumps({"ph": "Pega una dirección cripto (BTC, ETH, TRON, LTC, XMR)", "btn": "Revisar", "net": "Red", "unrec": "Dirección no reconocida. Soportadas: BTC, ETH, TRON, LTC, XMR.", "sanc": "⚠️ La dirección está en la lista OFAC", "clean": "✅ No está en la lista OFAC", "expl": "Ver transacciones en el explorador →", "loading": "Cargando datos on-chain…", "onchain": "On-chain", "onchainFail": "On-chain no disponible — mira el explorador.", "tx": "transacciones", "bal": "saldo", "listNA": "Lista no disponible — intenta luego."}, ensure_ascii=False) + ";" + _AML_JS + "})();</script>" + geo_ref_script("amlFull", "https://www.bestchange.com/report/"))
     i18n = {
         "ph": "Вставьте криптоадрес (BTC, ETH, TRON, LTC, XMR)" if ru else "Paste a crypto address (BTC, ETH, TRON, LTC, XMR)",
         "btn": "Проверить" if ru else "Check",
@@ -5211,8 +5387,9 @@ def aml_checker(lang):
             '<div id="amlResult" style="margin-top:12px"></div>'
             f'<p class="updnote">{disc}</p>{ad_mark(lang)}</div>')
     # Гео-переключение реф-метки: HTML-ссылка нейтральная по умолчанию, ?p= только для не-РФ пояса.
-    _geo_base = ("https://www.bestchange.com/report/?erid=2VtzqvK5m96" if lang == "en"
-                 else "https://www.bestchange.ru/report/?erid=2VtzqvK5m96")
+    _geo_base = ("https://www.bestchange.com/report/" if lang == "es"
+                 else ("https://www.bestchange.com/report/?erid=2VtzqvK5m96" if lang == "en"
+                 else "https://www.bestchange.ru/report/?erid=2VtzqvK5m96"))
     geo_js = geo_ref_script("amlFull", _geo_base)
     return form + "<script>(function(){var I=" + json.dumps(i18n, ensure_ascii=False) + ";" + _AML_JS + "})();</script>" + geo_js
 
@@ -5300,6 +5477,62 @@ def compliance_pages(lang):
    ответственности за решения, принятые на основе справочных данных.</p>
 <h2>Изменения</h2><p>Актуальная редакция Условий — на этой странице. Вопросы: {S.get('owner_email','')}.</p>""",
                     "Условия")
+    elif lang == "es":
+        render_page(lang, "o-servise", "Qué es BestChange",
+                    "BestChange — monitoreo de oficinas de cambio: información de referencia sobre tasas de criptomonedas y monedas.",
+                    """<h1>Qué es BestChange</h1>
+<p><b>BestChange</b> es un monitoreo de cambistas de moneda electrónica y cripto. Reúne tasas, reservas y
+   comisiones de docenas de oficinas y las muestra en un lugar — sin revisar cada sitio a mano.</p>
+<h2>Cómo funciona</h2>
+<ol class="steps"><li>Eliges una dirección de intercambio.</li><li>BestChange muestra cambistas ordenados por tasa.</li>
+<li>Miras tasa, calificación, reserva y reseñas, y eliges la oficina adecuada.</li><li>Vas y completas la operación en el sitio del cambista.</li></ol>
+<h2>Sobre el monitoreo</h2>
+<p>Solo aparecen cambistas con calificación y reservas. RateScout es un servicio de información independiente que ayuda a
+   orientarse y lleva a la lista de cambistas de BestChange. No procesamos intercambios.</p>""",
+                    "Qué es BestChange")
+        render_page(lang, "aml", "Verificación AML de direcciones cripto — por qué y cómo",
+                    "AML: cómo verificar una dirección cripto por vínculos con fraude y sanciones antes de intercambiar.",
+                    """<h1>Verificación AML de direcciones cripto</h1>
+<p><b>AML</b> (Anti-Money Laundering) — verificar si una dirección o transacción cripto está vinculada a fraude, darknet,
+   fondos robados o sanciones. Reduce el riesgo de recibir monedas «sucias» y bloqueos.</p>
+<h2>Cuándo hacerla</h2><ul><li>antes de recibir una suma grande en cripto;</li><li>antes de intercambiar cripto a euros/efectivo;</li>
+<li>si la contraparte es desconocida.</li></ul>
+<h2>Cómo verificar</h2>
+<p>El score AML completo (mixers, estafas, darknet) lo hacen servicios especializados de análisis blockchain.
+   Abajo — nuestra <b>verificación básica</b>: formato de dirección y lista oficial de sanciones OFAC.</p>""" + aml_checker(lang),
+                    "Verificación AML")
+        render_page(lang, "raskrytie", "Aviso legal",
+                    "Divulgación de afiliación e información legal de RateScout.",
+                    f"""<h1>Aviso legal</h1>
+<h2>Divulgación de afiliación</h2><p>RateScout es un servicio de información independiente. Los enlaces llevan a BestChange; por
+   el programa de afiliados podemos ganar una comisión.</p>
+<h2>Descargo</h2><p>Información de referencia, no es consejo financiero, de inversión ni legal.
+   Las tasas cambian. La decisión de intercambiar es tuya y bajo tu riesgo. 18+.</p>
+<h2>Contacto</h2>
+<p>Contacto: {S.get('owner_email','')}.</p>"""
+                    + donations_block(lang),
+                    "Aviso legal")
+        render_page(lang, "politika", "Política de privacidad",
+                    f"Política de datos y cookies en {S['domain']}.",
+                    f"""<h1>Política de privacidad</h1>
+<p>Esta Política describe el tratamiento de datos de visitantes de {S['domain']}.</p>
+<h2>Qué datos</h2><ul><li>datos técnicos del navegador (IP, tipo de navegador/SO, referer, fecha/hora);</li>
+<li>analítica web anonimizada;</li><li>cookies.</li></ul>
+<h2>Analítica</h2><p>Usamos Yandex.Metrica y Google Analytics (datos anonimizados). Puedes desactivar las cookies en el navegador.</p>
+<h2>Derechos</h2><p>Solicitudes, correcciones o borrado de datos — en {S.get('owner_email','')}.
+Actualizado en esta página.</p>""",
+                    "Privacidad")
+        render_page(lang, "usloviya", "Términos de uso",
+                    f"Términos de uso de {S['domain']}.",
+                    f"""<h1>Términos de uso</h1>
+<p>Al usar {S['domain']} aceptas estos Términos. Contacto: {S.get('owner_email','')}.</p>
+<h2>Servicio</h2><p>RateScout es un servicio independiente de monitoreo de tasas. Datos de referencia, no es oferta ni
+   consejo financiero o de inversión. Las decisiones son tuyas y bajo tu riesgo. 18+.</p>
+<h2>Uso permitido</h2><ul><li>respetar las reglas y la ley;</li>
+<li>no usar el servicio para spam, engaño u operaciones ilegales.</li></ul>
+<h2>Responsabilidad</h2><p>Servicio «tal cual», sin garantías. El titular no responde por decisiones tomadas con datos de referencia.</p>
+<h2>Cambios</h2><p>La versión vigente está en esta página. Preguntas: {S.get('owner_email','')}.</p>""",
+                    "Términos")
     else:
         render_page(lang, "o-servise", "What is BestChange",
                     "BestChange — an exchange office monitor: reference information about crypto and currency exchange rates.",
@@ -5313,7 +5546,8 @@ def compliance_pages(lang):
 <p>Exchangers with ratings and reserves are listed. RateScout is an independent information service that helps you
    navigate and leads to the BestChange exchanger list. We do not process exchanges ourselves.</p>""",
                     "What is BestChange")
-        render_page(lang, "earn", "Earn with BestChange — affiliate program for webmasters",
+        if lang != "es":
+            render_page(lang, "earn", "Earn with BestChange — affiliate program for webmasters",
                     "Monetize crypto and finance traffic with the BestChange affiliate program: commission from "
                     "exchanges plus a share from referred webmasters. How to join.",
                     """<h1>Earn with BestChange</h1>
@@ -6024,17 +6258,17 @@ def render_chains(lang, chains):
     L = lambda r, e, f=None, s=None: r if ru else (e if en else ((s if s is not None else e) if lang == "es" else (f if f is not None else e)))
     data = json.dumps(chains, ensure_ascii=False)
     labels = json.dumps({
-        "m2": L("2 звена (туда-обратно)", "2 legs (round-trip)", "2 maillons (aller-retour)"),
-        "m3": L("3 звена (треугольник)", "3 legs (triangle)", "3 maillons (triangle)"),
-        "m4": L("4 звена", "4 legs", "4 maillons"),
-        "chain": L("Цепочка обмена", "Exchange chain", "Chaîne d'échange"),
-        "profit": L("Доходность", "Profit", "Rendement"),
-        "risk": L("Риск", "Risk", "Risque"),
-        "liq": L("Обменников", "Exchangers", "Changeurs"),
-        "low": L("низкий", "low", "faible"), "mid": L("средний", "med", "moyen"), "high": L("высокий", "high", "élevé"),
+        "m2": L("2 звена (туда-обратно)", "2 legs (round-trip)", "2 maillons (aller-retour)", "2 tramos (ida y vuelta)"),
+        "m3": L("3 звена (треугольник)", "3 legs (triangle)", "3 maillons (triangle)", "3 tramos (triángulo)"),
+        "m4": L("4 звена", "4 legs", "4 maillons", "4 tramos"),
+        "chain": L("Цепочка обмена", "Exchange chain", "Chaîne d'échange", "Cadena de intercambio"),
+        "profit": L("Доходность", "Profit", "Rendement", "Rentabilidad"),
+        "risk": L("Риск", "Risk", "Risque", "Riesgo"),
+        "liq": L("Обменников", "Exchangers", "Changeurs", "Cambistas"),
+        "low": L("низкий", "low", "faible", "bajo"), "mid": L("средний", "med", "moyen", "medio"), "high": L("высокий", "high", "élevé", "alto"),
         "empty": L("Сейчас выгодных цепочек в этом режиме нет", "No profitable chains in this mode now",
-                   "Aucune chaîne rentable dans ce mode pour le moment"),
-        "updated": L("Обновлено:", "Updated:", "Mis à jour :"),
+                   "Aucune chaîne rentable dans ce mode pour le moment", "Ahora no hay cadenas rentables en este modo"),
+        "updated": L("Обновлено:", "Updated:", "Mis à jour :", "Actualizado:"),
     }, ensure_ascii=False)
     js = CHAINS_JS.replace("__DATA__", data).replace("__L__", labels)
     if lang in ("en", "fr", "es"):
@@ -6048,7 +6282,7 @@ def render_chains(lang, chains):
              "updates. Exchanger links for every step. Not financial advice, 18+.",
              "Chaînes d'échange rentables (2/3/4 maillons) d'après BestChange : rendement et risque, actualisation "
              "horaire. Liens vers les changeurs à chaque étape. Pas un conseil financier, 18+.")
-    h1 = L("Цепочки обмена валют", "Currency exchange chains", "Chaînes d'échange de monnaies")
+    h1 = L("Цепочки обмена валют", "Currency exchange chains", "Chaînes d'échange de monnaies", "Cadenas de intercambio de monedas")
     lead = L("Цепочки обменов, где сумма курсов даёт плюс: обмениваешь по кругу A→B→C→A и возвращаешься с "
              "бо́льшим. Данные — лучшие курсы обменников BestChange, обновление ежечасно. Каждый шаг — ссылка на "
              "обменники. Рядом — оценка риска: чем длиннее цепочка, меньше обменников и «красивее» процент, тем выше.",
@@ -6089,18 +6323,18 @@ def render_chains(lang, chains):
     body = f"""
   <h1>{h1}</h1>
   <p class="lead">{lead}</p>
-  <p class="updnote">{updated_str(lang)} · {L('данные','data','données')} BestChange</p>
+  <p class="updnote">{updated_str(lang)} · {L('данные','data','données','datos')} BestChange</p>
   {ad_mark(lang)}
   <div class="ch-ctl">
     <span class="rsrange" id="chModes"></span>
-    <span class="ch-sort">{L('Сортировка', 'Sort', 'Tri')}:
-      <button data-s="profit" class="on">{L('доходность', 'profit', 'rendement')}</button>
-      <button data-s="risk">{L('риск', 'risk', 'risque')}</button></span>
+    <span class="ch-sort">{L('Сортировка', 'Sort', 'Tri', 'Ordenar')}:
+      <button data-s="profit" class="on">{L('доходность', 'profit', 'rendement', 'rentabilidad')}</button>
+      <button data-s="risk">{L('риск', 'risk', 'risque', 'riesgo')}</button></span>
   </div>
   <div id="chWrap" class="dosborder"><table id="chTbl"><thead></thead><tbody></tbody></table></div>
   <p class="mon-note" id="chUpd"></p>
   <div class="ch-disc dosborder">{disc}</div>
-  <div class="ch-cta"><a href="https://my-many.ratescout.ru/?utm_source=ratescout&utm_medium=chains_cta">{L('Арбитраж', 'Arbitrage', 'Arbitrage')}</a></div>
+  <div class="ch-cta"><a href="https://my-many.ratescout.ru/?utm_source=ratescout&utm_medium=chains_cta">{L('Арбитраж', 'Arbitrage', 'Arbitrage', 'Arbitraje')}</a></div>
 """ + CHAINS_CSS + "<script>" + js + "</script>"
     render_page(lang, "tsepochki", title, desc, body, h1)
 
@@ -6405,7 +6639,7 @@ def render_alert(lang):
     desc = L("Подпишитесь на курс пары валют: пришлём сигнал в Telegram, когда «1 A ≥/≤ порог B». Выбор валют, график пары, бесплатно — RateScout.",
              "Subscribe to a currency pair rate: get a Telegram signal when '1 A is above/below a threshold in B'. Pick currencies, pair chart, free — RateScout.",
              "Suivez le taux d'une paire : signal Telegram quand « 1 A ≥/≤ seuil B ». Choix des monnaies, graphique, gratuit — RateScout.")
-    h1 = L("Оповещения о курсе пары", "Currency pair alerts", "Alertes de taux")
+    h1 = L("Оповещения о курсе пары", "Currency pair alerts", "Alertes de taux", "Alertas de tasa del par")
     lead = L("Выберите две валюты и задайте порог: Telegram-бот пришлёт сигнал, когда 1 единица первой валюты станет выше или ниже заданного значения во второй. Единицу можно перевернуть кнопкой ⇄.",
              "Pick two currencies and set a threshold: the Telegram bot sends a signal when 1 unit of the first goes above or below the set amount in the second. Swap the unit with ⇄.",
              "Choisissez deux monnaies et fixez un seuil : le bot Telegram signalera quand 1 unité de la première passe au-dessus ou au-dessous du montant fixé dans la seconde. Inversez l'unité avec ⇄.")
@@ -6414,18 +6648,18 @@ def render_alert(lang):
   <p class="lead">{lead}</p>
   <div id="alert" class="alert-wrap dosborder">
     <div class="alert-row">
-      <label class="alert-cur">{L('Валюта','Currency','Monnaie')} A<br><select id="alertA"></select></label>
-      <button id="alertSwap" type="button" class="mon-btn alert-swap" title="{L('Поменять местами','Swap','Inverser')}">⇄</button>
-      <label class="alert-cur">{L('в валюте','in currency','en monnaie')} B<br><select id="alertB"></select></label>
+      <label class="alert-cur">{L('Валюта','Currency','Monnaie','Moneda')} A<br><select id="alertA"></select></label>
+      <button id="alertSwap" type="button" class="mon-btn alert-swap" title="{L('Поменять местами','Swap','Inverser','Invertir')}">⇄</button>
+      <label class="alert-cur">{L('в валюте','in currency','en monnaie','en moneda')} B<br><select id="alertB"></select></label>
     </div>
     <div class="alert-row">
-      <label class="alert-cur">{L('Условие','Condition','Condition')}<br><select id="alertDir"><option value="g">{L('1 A ≥ порога','1 A ≥ threshold','1 A ≥ seuil')}</option><option value="l">{L('1 A ≤ порога','1 A ≤ threshold','1 A ≤ seuil')}</option></select></label>
-      <label class="alert-cur">{L('Порог (в B)','Threshold (in B)','Seuil (en B)')}<br><input id="alertThr" type="text" inputmode="decimal" autocomplete="off"></label>
+      <label class="alert-cur">{L('Условие','Condition','Condition','Condición')}<br><select id="alertDir"><option value="g">{L('1 A ≥ порога','1 A ≥ threshold','1 A ≥ seuil','1 A ≥ umbral')}</option><option value="l">{L('1 A ≤ порога','1 A ≤ threshold','1 A ≤ seuil','1 A ≤ umbral')}</option></select></label>
+      <label class="alert-cur">{L('Порог (в B)','Threshold (in B)','Seuil (en B)','Umbral (en B)')}<br><input id="alertThr" type="text" inputmode="decimal" autocomplete="off"></label>
     </div>
     <p id="alertNow" class="alert-now"></p>
-    <div id="alertChart" class="mon-chart dosborder"><p class="mon-empty">{L('Загружаю…','Loading…','Chargement…')}</p></div>
+    <div id="alertChart" class="mon-chart dosborder"><p class="mon-empty">{L('Загружаю…','Loading…','Chargement…','Cargando…')}</p></div>
     <button id="alertSub" type="button" class="alert-sub">{L('🔔 Подписаться в Telegram','🔔 Subscribe in Telegram',"🔔 S'abonner sur Telegram")}</button>
-    <p class="alert-hint">{L('Оповещение придёт в бот','Alert arrives in the bot','Alerte via le bot')} <b>@RateScoutRUBot</b>. {L('Бесплатно. Отписаться — командой /myalerts.','Free. Unsubscribe with /myalerts.','Gratuit. Désinscription via /myalerts.')}</p>
+    <p class="alert-hint">{L('Оповещение придёт в бот','Alert arrives in the bot','Alerte via le bot','La alerta llegará al bot')} <b>@RateScoutRUBot</b>. {L('Бесплатно. Отписаться — командой /myalerts.','Free. Unsubscribe with /myalerts.','Gratuit. Désinscription via /myalerts.','Gratis. Date de baja con /myalerts.')}</p>
   </div>
   <script src="/assets/alert.js?v={VER['alert']}"></script>
 """
@@ -6449,7 +6683,7 @@ def render_heatmap(lang):
              "BestChange monitoring data, hourly updates.",
              "Carte thermique des taux de toutes les monnaies : hausses et baisses en couleur sur la période (24 h…an). "
              "Données BestChange, actualisation horaire.")
-    h1 = L("Тепловая карта валют", "Currency heatmap", "Carte thermique des monnaies")
+    h1 = L("Тепловая карта валют", "Currency heatmap", "Carte thermique des monnaies", "Mapa de calor de monedas")
     lead = L(f"Все {n} валют одной картой: цвет плитки — изменение цены за период (зелёный — рост, красный — падение). "
              "Переключите период и категорию, нажмите плитку — откроется страница валюты.",
              f"All {n} currencies as one map: tile color is price change over the period (green — up, red — down). "
@@ -6462,11 +6696,11 @@ def render_heatmap(lang):
   <div id="heatpage" class="dosborder">
     <div class="hp-ctl">
       <span id="hpRanges" class="mon-ranges"></span>
-      <label class="hp-base">{L('Оценка в','Valued in','Évalué en')}: <select id="hpBase"></select></label>
-      <input id="hpSearch" class="mon-search" placeholder="{L('поиск валюты…','search…','rechercher…')}" autocomplete="off">
+      <label class="hp-base">{L('Оценка в','Valued in','Évalué en','Valorado en')}: <select id="hpBase"></select></label>
+      <input id="hpSearch" class="mon-search" placeholder="{L('поиск валюты…','search…','rechercher…','buscar moneda…')}" autocomplete="off">
     </div>
     <div id="hpCats" class="rsrange"></div>
-    <div id="hpGrid" class="heat-grid"><p class="mon-empty">{L('Загружаю…','Loading…','Chargement…')}</p></div>
+    <div id="hpGrid" class="heat-grid"><p class="mon-empty">{L('Загружаю…','Loading…','Chargement…','Cargando…')}</p></div>
     <p id="hpNote" class="mon-note"></p>
   </div>
   <script src="/assets/heatmap.js?v={VER['heat']}"></script>
@@ -6510,16 +6744,17 @@ def render_popular(lang):
         body_rows = "".join(
             f'<tr><td>{i+1}</td><td>{cur_link(s)}</td><td>{c}</td>{chg24(s)}</tr>'
             for i, (s, c) in enumerate(gsc_rows))
-        gsc_block = (f'<h2>{L("По запросам в Google (наш сайт)", "By Google queries (our site)", "Par requêtes Google (notre site)")}</h2>'
+        gsc_block = (f'<h2>{L("По запросам в Google (наш сайт)", "By Google queries (our site)", "Par requêtes Google (notre site)", "Por consultas en Google (nuestro sitio)")}</h2>'
                      f'<div class="rtbl-wrap"><table class="rtbl">{head}{body_rows}</table></div>')
     else:
-        gsc_block = f'<p class="updnote">{L("Данные поиска накапливаются из Google Search Console — список появится здесь.", "Search data is accumulating from Google Search Console — the list will appear here.", "Les données de recherche Google Search Console s’accumulent — la liste apparaîtra ici.")}</p>'
+        gsc_block = f'<p class="updnote">{L("Данные поиска накапливаются из Google Search Console — список появится здесь.", "Search data is accumulating from Google Search Console — the list will appear here.", "Les données de recherche Google Search Console s’accumulent — la liste apparaîtra ici.", "Los datos de búsqueda de Google Search Console se están acumulando — la lista aparecerá aquí.")}</p>'
 
     # CoinGecko trending
     if TRENDING:
         head2 = L("<tr><th>#</th><th>Монета</th><th>Ранг</th><th>24ч</th></tr>",
                   "<tr><th>#</th><th>Coin</th><th>Rank</th><th>24h</th></tr>",
-                  "<tr><th>#</th><th>Pièce</th><th>Rang</th><th>24 h</th></tr>")
+                  "<tr><th>#</th><th>Pièce</th><th>Rang</th><th>24 h</th></tr>",
+                  "<tr><th>#</th><th>Moneda</th><th>Rango</th><th>24h</th></tr>")
         def tcell(c):
             nm = c.get("name") or c.get("symbol") or "?"
             sym = c.get("symbol") or ""
@@ -6531,7 +6766,7 @@ def render_popular(lang):
             chcls = "" if ch is None else (' class="up"' if ch >= 0 else ' class="dn"')
             return f'<td>{cell}</td><td>{c.get("rank") or "—"}</td><td{chcls}>{chd}</td>'
         rows2 = "".join(f'<tr><td>{i+1}</td>{tcell(c)}</tr>' for i, c in enumerate(TRENDING))
-        trend_block = (f'<h2>{L("В тренде поиска (CoinGecko)", "Trending search (CoinGecko)", "Tendances de recherche (CoinGecko)")}</h2>'
+        trend_block = (f'<h2>{L("В тренде поиска (CoinGecko)", "Trending search (CoinGecko)", "Tendances de recherche (CoinGecko)", "Tendencias de búsqueda (CoinGecko)")}</h2>'
                        f'<div class="rtbl-wrap"><table class="rtbl">{head2}{rows2}</table></div>')
     else:
         trend_block = ""
@@ -6542,13 +6777,14 @@ def render_popular(lang):
     desc = L("Рейтинг популярности валют по данным поиска: что чаще ищут для обмена (Google Search Console) и что в тренде (CoinGecko).",
              "Currency popularity ranking from search data: what people look up to exchange (Google Search Console) and what is trending (CoinGecko).",
              "Classement de popularité des monnaies d'après la recherche : quoi échanger (Google Search Console) et tendances (CoinGecko).")
-    h1 = L("Популярность валют по поиску", "Currency popularity by search", "Popularité des monnaies en recherche")
+    h1 = L("Популярность валют по поиску", "Currency popularity by search", "Popularité des monnaies en recherche", "Popularidad de monedas por búsqueda")
     lead = L("Какие валюты и направления люди ищут чаще всего. Слева — спрос из Google по нашему сайту, ниже — что сейчас в тренде поиска по крипте. Нажмите валюту — её страница с курсами.",
              "Which currencies and directions people search for most. First — Google demand for our site, then what is trending in crypto search now. Click a currency for its rates page.",
              "Quelles monnaies et directions cherche-t-on le plus. D'abord — la demande Google pour notre site, puis les tendances crypto. Cliquez une monnaie pour sa page de taux.")
     rel = L(f'<p class="related"><a href="{PREF[lang]}/monitor/">Профессиональный монитор</a> · <a href="{PREF[lang]}/heatmap/">Тепловая карта</a></p>',
             f'<p class="related"><a href="{PREF[lang]}/monitor/">Professional monitor</a> · <a href="{PREF[lang]}/heatmap/">Heatmap</a></p>',
-            f'<p class="related"><a href="{PREF[lang]}/monitor/">Moniteur professionnel</a> · <a href="{PREF[lang]}/heatmap/">Carte thermique</a></p>')
+            f'<p class="related"><a href="{PREF[lang]}/monitor/">Moniteur professionnel</a> · <a href="{PREF[lang]}/heatmap/">Carte thermique</a></p>',
+            f'<p class="related"><a href="{PREF[lang]}/monitor/">Monitor profesional</a> · <a href="{PREF[lang]}/heatmap/">Mapa de calor</a></p>')
     body = f'<h1>{h1}</h1><p class="lead">{lead}</p>{gsc_block}{trend_block}{rel}'
     render_page(lang, "populyarnost", title, desc, body, h1)
 
@@ -6566,7 +6802,7 @@ def render_monitor(lang):
     desc = L("Монитор курсов: графики валют на одной шкале, выбор базовой валюты (по умолчанию доллар), линии или свечи, выбор валют галочками — RateScout.",
              "Rate monitor: currency charts on one scale, base currency (USD by default), lines or candles, pick currencies with checkboxes — RateScout.",
              "Moniteur de taux : graphiques sur une échelle, monnaie de base (dollar par défaut), lignes ou bougies, sélection par cases — RateScout.")
-    h1 = L("Профессиональный монитор курсов", "Professional rate monitor", "Moniteur de taux professionnel")
+    h1 = L("Профессиональный монитор курсов", "Professional rate monitor", "Moniteur de taux professionnel", "Monitor profesional de tasas")
     lead = L("Биржевой терминал: несколько панелей (графики, watchlist, лидеры роста/падения, тепловая карта), которые можно двигать, менять размер и сохранять. Или классический вид — все валюты на одном графике.",
              "Trading-terminal view: several panels (charts, watchlist, top movers, heatmap) you can drag, resize and save. Or the classic view — all currencies on one chart.",
              "Vue terminal : plusieurs panneaux (graphiques, watchlist, mouvements, carte thermique) déplaçables, redimensionnables, sauvegardables. Ou vue classique — toutes les monnaies sur un graphique.")
@@ -6638,14 +6874,14 @@ def render_monitor(lang):
     _faqld = jsonld({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
         {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": re.sub("<[^>]+>", "", a)}}
         for q, a in faq_items]})
-    faq_html = f'<h2 class="news">{L("Частые вопросы о мониторе", "Monitor FAQ", "Questions sur le moniteur")}</h2>{_qa}{_faqld}'
+    faq_html = f'<h2 class="news">{L("Частые вопросы о мониторе", "Monitor FAQ", "Questions sur le moniteur", "Preguntas frecuentes sobre el monitor")}</h2>{_qa}{_faqld}'
     body = f"""
   <h1>{h1}</h1>
   <p class="lead">{lead}</p>
   {ad_mark(lang)}
   <div class="mon-mode">
-    <button id="modeTerm" class="on" type="button">⊞ {L('Терминал','Terminal','Terminal')}</button>
-    <button id="modeClassic" type="button">{L('Классика','Classic','Classique')}</button>
+    <button id="modeTerm" class="on" type="button">⊞ {L('Терминал','Terminal','Terminal','Terminal')}</button>
+    <button id="modeClassic" type="button">{L('Классика','Classic','Classique','Clásico')}</button>
   </div>
   <div id="terminal">
     <div id="termBar" class="term-bar"></div>
@@ -6654,27 +6890,27 @@ def render_monitor(lang):
   <div id="monitor" class="mon-wrap">
     <div class="mon-main">
       <div class="mon-ctl">
-        <label>{L('База','Base','Base')}: <select id="monBase"></select></label>
-        <label>{L('Тип','Type','Type')}: <select id="monType"><option value="line">{L('Линии','Lines','Lignes')}</option><option value="candle">{L('Свечи','Candles','Bougies')}</option><option value="ratio">{L('Пара A/B','Pair A/B','Paire A/B')}</option></select></label>
-        <label class="mon-chk"><input id="monLog" type="checkbox"> {L('лог-шкала','log scale','échelle log')}</label>
-        <label class="mon-chk"><input id="monCorrChk" type="checkbox"> {L('корреляция','correlation','corrélation')}</label>
-        <span class="mon-exp"><button id="monCsv" type="button" class="mon-btn">CSV</button><button id="monPng" type="button" class="mon-btn">PNG</button><button id="monLink" type="button" class="mon-btn">{L('Ссылка','Link','Lien')}</button></span>
+        <label>{L('База','Base','Base','Base')}: <select id="monBase"></select></label>
+        <label>{L('Тип','Type','Type','Tipo')}: <select id="monType"><option value="line">{L('Линии','Lines','Lignes','Líneas')}</option><option value="candle">{L('Свечи','Candles','Bougies','Velas')}</option><option value="ratio">{L('Пара A/B','Pair A/B','Paire A/B','Par A/B')}</option></select></label>
+        <label class="mon-chk"><input id="monLog" type="checkbox"> {L('лог-шкала','log scale','échelle log','escala log')}</label>
+        <label class="mon-chk"><input id="monCorrChk" type="checkbox"> {L('корреляция','correlation','corrélation','correlación')}</label>
+        <span class="mon-exp"><button id="monCsv" type="button" class="mon-btn">CSV</button><button id="monPng" type="button" class="mon-btn">PNG</button><button id="monLink" type="button" class="mon-btn">{L('Ссылка','Link','Lien','Enlace')}</button></span>
       </div>
       <div id="monRanges" class="mon-ranges"></div>
-      <div id="monChart" class="mon-chart dosborder"><p class="mon-empty">{L('Загружаю…','Loading…','Chargement…')}</p></div>
+      <div id="monChart" class="mon-chart dosborder"><p class="mon-empty">{L('Загружаю…','Loading…','Chargement…','Cargando…')}</p></div>
       <div id="monLegend" class="mon-legend"></div>
       <p id="monNote" class="mon-note"></p>
       <div id="monStats" class="mon-stats"></div>
       <div id="monCorrBox" class="mon-corr"></div>
     </div>
     <aside class="mon-side dosborder">
-      <div class="mon-side-h">{L('Валюты на графике','Currencies on chart','Monnaies sur le graphique')}</div>
+      <div class="mon-side-h">{L('Валюты на графике','Currencies on chart','Monnaies sur le graphique','Monedas en el gráfico')}</div>
       <div id="monPresets" class="mon-presets"></div>
       <div id="monCats" class="rsrange mon-cats"></div>
-      <label class="mon-show-l">{L('Показывать','Show','Afficher')}: <select id="monShow"><option value="all">{L('все','all','toutes')}</option><option value="sel">{L('выбранные','selected','sélectionnées')}</option></select></label>
+      <label class="mon-show-l">{L('Показывать','Show','Afficher','Mostrar')}: <select id="monShow"><option value="all">{L('все','all','toutes','todas')}</option><option value="sel">{L('выбранные','selected','sélectionnées','seleccionadas')}</option></select></label>
       <div class="mon-side-top">
-        <input id="monSearch" class="mon-search" placeholder="{L('поиск валюты…','search…','rechercher…')}" autocomplete="off">
-        <button id="monClear" type="button" class="mon-btn">{L('Очистить','Clear','Effacer')}</button>
+        <input id="monSearch" class="mon-search" placeholder="{L('поиск валюты…','search…','rechercher…','buscar moneda…')}" autocomplete="off">
+        <button id="monClear" type="button" class="mon-btn">{L('Очистить','Clear','Effacer','Limpiar')}</button>
       </div>
       <div id="monList" class="mon-list"></div>
     </aside>
@@ -6714,6 +6950,24 @@ def render_book(lang):
                   "график, тайл-раскладка, темы, сохранение рабочего стола ссылкой. Сценарии поиска валют и пар под стратегию.</p>"),
                  "/book/professional-monitor-RU.docx", "Скачать книгу (DOCX) →", stores_ru)
         crumb = "Книги"
+    elif lang == "es":
+        title = "Libros RateScout — descargar (intercambio cripto y monitor profesional)"
+        desc = ("Libros RateScout: guía práctica de intercambio y manual del monitor profesional. Descarga gratis.")
+        h1 = "Libros RateScout"
+        intro = ('<p class="lead">Libros prácticos — sin hype ni consejos de inversión, solo práctica. 18+.</p>')
+        stores_es = ("El libro se está preparando para tiendas — los enlaces aparecerán aquí.")
+        b1 = blk("Intercambio cripto sin pérdidas",
+                 "Guía práctica de intercambio vía monitores · Autor: Maxim Sementsul",
+                 ("<p>Cómo intercambiar cripto y dinero con monitores — rentable y sin pérdidas. "
+                  "Tasa, reserva y calificación, cómo elegir un cambista fiable, redes "
+                  "(TRC20/ERC20/BEP20/TON), stablecoins y AML.</p>"),
+                 "/book/crypto-exchange-EN.docx", "Descargar el libro (DOCX) →", stores_es)
+        b2 = blk("Monitor profesional de tasas cripto",
+                 "Cómo leer el mercado y montar un terminal en el navegador · Autor: Maxim Sementsul",
+                 ("<p>Manual del monitor profesional RateScout: precio en USDT, variación y volatilidad; "
+                  "paneles de gráficos, watchlist, movimientos, mapa de calor y demanda.</p>"),
+                 "/book/professional-monitor-EN.docx", "Descargar el libro (DOCX) →", stores_es)
+        crumb = "Libros"
     else:
         title = "RateScout books — download (crypto exchange and professional monitor)"
         desc = ("RateScout books: the practical guide Crypto Exchange Without Losses and the manual "

@@ -3,10 +3,10 @@
 (function () {
   var C = window.__CATALOG__;
   var REF = window.__REF__ || "1116359";
-  var ERID = window.__ERID__ || "2VtzqvK5m96";
-  var BCDOM = (document.documentElement.lang || "ru").slice(0, 2) === "en"
+  var ERID = (typeof window.__ERID__ === "string") ? window.__ERID__ : "2VtzqvK5m96";
+  var BCDOM = (function(){var L=(document.documentElement.lang || "ru").slice(0, 2); return L === "en" || L === "es";})()
     ? "https://www.bestchange.com" : "https://www.bestchange.ru";
-  function bcQs(qs) { return qs + "&erid=" + ERID; }
+  function bcQs(qs) { return ERID ? qs + "&erid=" + ERID : qs; }
 
   // ---- поиск по валютам (на всех страницах) ----
   (function () {
