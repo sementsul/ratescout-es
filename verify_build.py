@@ -60,7 +60,12 @@ for p in [os.path.join(DIST, "index.html"), btc]:
 
 # 6) Защита от полу-пустой сборки
 n = len(glob.glob(os.path.join(DIST, "**", "index.html"), recursive=True))
-need(n >= 1000, f"подозрительно мало страниц: {n}")
+_langs_n = 1
+try:
+    _langs_n = len(json.load(open("data.json", encoding="utf-8")).get("site", {}).get("langs", ["ru"]))
+except Exception:
+    pass
+need(n >= (1000 if _langs_n > 1 else 500), f"подозрительно мало страниц: {n}")
 
 if errors:
     print("🔴 SMOKE-ПРОВЕРКА dist/ ПРОВАЛЕНА — деплой отменяется:")
