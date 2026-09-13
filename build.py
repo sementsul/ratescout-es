@@ -2555,12 +2555,15 @@ def render_koshelki(lang):
         rows += f'<tr><td><b>{name}</b></td><td>{d}</td><td>{link}</td></tr>'
     table = (f'<div class="rtbl-wrap"><table class="rtbl"><thead><tr>'
              f'{"".join(f"<th>{c}</th>" for c in coln)}</tr></thead><tbody>{rows}</tbody></table></div>')
-    note = ("Ссылки ведут на официальные сайты кошельков. RateScout — справочный сервис, не связан с ними и не даёт "
+    note = ("Los enlaces llevan a los sitios oficiales de las billeteras. RateScout es un servicio de referencia, "
+            "no está afiliado a ellas y no da consejos financieros. Mantén tu frase semilla en privado."
+            if lang == "es" else
+            ("Ссылки ведут на официальные сайты кошельков. RateScout — справочный сервис, не связан с ними и не даёт "
             "финансовых рекомендаций. Храните seed-фразу в тайне." if ru else
             ("Links lead to the wallets' official sites. RateScout is a reference service, not affiliated with them "
              "and gives no financial advice. Keep your seed phrase private." if en else
              "Les liens mènent vers les sites officiels des portefeuilles. RateScout est un service d'information, "
-             "sans lien avec eux, et ne donne aucun conseil financier. Gardez votre phrase seed privée."))
+             "sans lien avec eux, et ne donne aucun conseil financier. Gardez votre phrase seed privée.")))
     crumbs = jsonld({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": tr(lang, "monitor"), "item": BASE_URL + PREF[lang] + "/"},
         {"@type": "ListItem", "position": 2, "name": h1, "item": BASE_URL + PREF[lang] + path}]})
