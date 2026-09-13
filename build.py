@@ -922,11 +922,11 @@ def render_compare_index(lang):
         la, lb, btn, warn = "Первая валюта", "Вторая валюта", "Сравнить", "Выберите две разные валюты."
         poph = "Популярные сравнения"
     elif lang == "es":
-        title = f"Comparar criptomonedas — elige dos monedas | {S['name']}"
-        desc = ("Compara dos criptomonedas por precio, variación, capitalización, volumen y ATH. Elige monedas — obtén la "
+        title = f"Comparar criptomonedas — elegí dos monedas | {S['name']}"
+        desc = ("Compará dos criptomonedas por precio, variación, capitalización, volumen y ATH. Elegí monedas — obtené la "
                 "comparación. Datos BestChange y CoinGecko.")
-        h1, lead = "Comparar criptomonedas", "Elige dos monedas — las mostramos lado a lado en indicadores clave."
-        la, lb, btn, warn = "Primera moneda", "Segunda moneda", "Comparar", "Elige dos monedas distintas."
+        h1, lead = "Comparar criptomonedas", "Elegí dos monedas — las mostramos lado a lado en indicadores clave."
+        la, lb, btn, warn = "Primera moneda", "Segunda moneda", "Comparar", "Elegí dos monedas distintas."
         poph = "Comparaciones populares"
     elif lang in ("en", "es"):
         title = f"Compare cryptocurrencies — pick two coins | {S['name']}"
@@ -1021,7 +1021,7 @@ def render_compare(a, b, lang):
         colh = ("Показатель", ta, tb)
     elif lang == "es":
         title = f"{ia['name']} ({ta}) vs {ib['name']} ({tb}) — tasas y comparación hoy | {S['name']}"
-        desc = (f"{_pref_es}Compara {ia['name']} ({ta}) y {ib['name']} ({tb}): precio, variación 24h/7d/30d, "
+        desc = (f"{_pref_es}Compará {ia['name']} ({ta}) y {ib['name']} ({tb}): precio, variación 24h/7d/30d, "
                 f"capitalización, volumen, ATH. Datos BestChange y CoinGecko.")
         h1, lead = f"{ia['name']} vs {ib['name']} — comparación", (f"Comparando {ia['name']} y {ib['name']} en métricas clave — "
             "precio, dinámica, capitalización. De referencia, no es consejo.")
@@ -1255,7 +1255,7 @@ def render_charts_overview(lang):
     elif lang == "es":
         title = f"Gráficos de tasas cripto — tendencias | {S['name']}"
         desc = "Gráficos de tasas cripto (precio en USDT): variación y minigráficos de todas las monedas. Actualización cada hora."
-        h1, lead = "Gráficos de tasas", f"Tendencias de precios en USDT de {len(rows)} monedas. Actualización cada hora. Haz clic en una moneda para ver el gráfico completo."
+        h1, lead = "Gráficos de tasas", f"Tendencias de precios en USDT de {len(rows)} monedas. Actualización cada hora. Hacé clic en una moneda para ver el gráfico completo."
         th = ("Moneda", "Precio (USDT)", "Var.", "Gráfico")
         sorts = [("liq", "Por liquidez"), ("up", "Subidas ↑"), ("down", "Bajadas ↓")]
         plbl = "Variación en:"
@@ -1340,8 +1340,8 @@ def render_relative(lang):
         sorts = [("rate-desc", "Курс ↓"), ("rate-asc", "Курс ↑"), ("name", "А–Я")]
     elif lang == "es":
         title = f"Tasas relativas de monedas — 1 moneda a otras | {S['name']}"
-        desc = "Tasas relativas (cruzadas) de monedas: elige una moneda base y ve su tasa a todas las demás. Filtro por categoría, búsqueda."
-        h1, lead = "Tasas relativas de monedas", "Elige una moneda base — ve cuánto vale 1 unidad en otras monedas (tasa cruzada vía USDT)."
+        desc = "Tasas relativas (cruzadas) de monedas: elegí una moneda base y mirá su tasa a todas las demás. Filtro por categoría, búsqueda."
+        h1, lead = "Tasas relativas de monedas", "Elegí una moneda base — mirá cuánto vale 1 unidad en otras monedas (tasa cruzada vía USDT)."
         blbl, ph, nores = "Moneda base:", "Buscar moneda: BTC, USDT, SEPA…", "Nada encontrado"
         th = ("Moneda", "Tasa")
         rate_tpl = "Tasa (1 {b} = …)"
@@ -2253,13 +2253,13 @@ def head(lang, title, desc, path, extra="", og_image=None, og_w=1200, og_h=630):
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="preconnect" href="https://mc.yandex.ru">
-<link rel="dns-prefetch" href="https://mc.yandex.ru">
+{'<link rel="preconnect" href="https://mc.yandex.ru">' if lang != "es" else ""}
+{'<link rel="dns-prefetch" href="https://mc.yandex.ru">' if lang != "es" else ""}
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 <link rel="stylesheet" href="/assets/styles.css?v={VER['css']}">
 {extra}
-{METRIKA}
+{METRIKA if lang != "es" else ""}
 {GTAG}
 </head>
 <body>
@@ -2445,7 +2445,7 @@ def donations_block(lang):
         h, lead = "Поддержать проект", ("Проект развивается на энтузиазме. Если он вам полезен — можно поддержать "
                                         "в криптовалюте (по желанию, необязательно):")
     elif lang == "es":
-        h, lead = "Apoyar el proyecto", ("El proyecto avanza por entusiasmo. Si te resulta útil, puedes "
+        h, lead = "Apoyar el proyecto", ("El proyecto avanza por entusiasmo. Si te resulta útil, podés "
                                           "apoyarlo en cripto (opcional):")
     elif lang in ("en", "es"):
         h, lead = "Support the project", ("The project runs on enthusiasm. If you find it useful, you can support "
@@ -3053,16 +3053,16 @@ def render_buy(slug, info, lang):
             desc = (f"Cómo comprar {name} ({ticker}): todas las direcciones de intercambio a {ticker} con tasas del monitoreo "
                     f"BestChange, actualización cada hora. Por USDT, euros u otras criptos.")
         h1 = f"Comprar {name}"
-        intro = (f"Directorio de direcciones donde puedes <b>obtener {name} ({ticker})</b>: intercambio desde otras "
-                 f"monedas con tasas del monitoreo <b>BestChange</b>. Elige con qué pagas abajo.")
+        intro = (f"Directorio de direcciones donde podés <b>obtener {name} ({ticker})</b>: intercambio desde otras "
+                 f"monedas con tasas del monitoreo <b>BestChange</b>. Elegí con qué pagas abajo.")
         tt = ("Entregas", "Tasa", "Cambistas", "Reserva total")
         howh = f"Cómo comprar {name}"
-        steps = [f"Elige qué entregas en la tabla o lista de abajo.",
-                 "En BestChange compara tasa, reserva y calificación de cambistas.",
-                 f'Revisa la dirección de recepción de {ticker}; para un monto grande — <a href="{PREF[lang]}/aml/">verificación AML</a>.',
-                 f"Completa el intercambio y recibe {ticker} en tu billetera/cuenta."]
-        q1, a1 = f"¿Cómo comprar {name} más barato?", f"Compara las direcciones por tasa y reserva en el monitoreo BestChange y ten en cuenta la comisión de red. Comprar {ticker} con USDT suele ser favorable."
-        q2, a2 = f"¿Dónde obtener {name} por euros?", f"Elige una dirección con origen en euros (tarjeta/SEPA/efectivo) → {ticker} en la lista de abajo."
+        steps = [f"Elegí qué entregas en la tabla o lista de abajo.",
+                 "En BestChange compará tasa, reserva y calificación de cambistas.",
+                 f'Revisá la dirección de recepción de {ticker}; para un monto grande — <a href="{PREF[lang]}/aml/">verificación AML</a>.',
+                 f"Completá el intercambio y recibe {ticker} en tu billetera/cuenta."]
+        q1, a1 = f"¿Cómo comprar {name} más barato?", f"Compará las direcciones por tasa y reserva en el monitoreo BestChange y tené en cuenta la comisión de red. Comprar {ticker} con USDT suele ser favorable."
+        q2, a2 = f"¿Dónde obtener {name} por euros?", f"Elegí una dirección con origen en euros (tarjeta/SEPA/efectivo) → {ticker} en la lista de abajo."
         back = f'<a href="{cpage(lang, slug)}">Intercambiar {name} (vender / todas las direcciones) →</a>'
         note = "Mejor tasa entre cambistas; la reserva es total. " + updated_str(lang)
     elif lang in ("en", "es"):
@@ -3180,20 +3180,20 @@ def render_currency(slug, info, lang):
     elif lang == "es":
         if _prc:
             title = f"{name} ({ticker}): precio hoy — {_prc} USDT · intercambio | {S['name']}"
-            desc = (f"{name} ({ticker}) — {_prc} USDT al {_ldc}. Compara las tasas de cambio de las oficinas BestChange "
+            desc = (f"{name} ({ticker}) — {_prc} USDT al {_ldc}. Compará las tasas de cambio de las oficinas BestChange "
                     f"para {_ndc} direcciones de {ticker}. Verificación AML de direcciones, actualización cada hora.")
         else:
             title = f"Intercambiar {name} ({ticker}) — {_ndc} direcciones, tasas de hoy | {S['name']}"
             desc = (f"Intercambia {name} ({ticker}): {_ndc} direcciones, tasas de cambistas del monitoreo BestChange, "
                     f"actualización cada hora. Verificación AML de direcciones.")
         intro = (f"Resumen indicativo de las tasas de cambio de <b>{name} ({ticker})</b> en oficinas del "
-                 f"monitoreo <b>BestChange</b>. Elige una dirección abajo; el intercambio se realiza en el sitio del cambista.")
-        steps = [f"Elige una dirección de intercambio para {ticker} arriba.",
-                 "En BestChange compara tasa, reserva y calificación de cambistas.",
-                 f'Para cripto — haz una <a href="{PREF[lang]}/aml/">verificación AML de la dirección</a>.',
-                 "Ve al cambista elegido y completa la operación."]
+                 f"monitoreo <b>BestChange</b>. Elegí una dirección abajo; el intercambio se realiza en el sitio del cambista.")
+        steps = [f"Elegí una dirección de intercambio para {ticker} arriba.",
+                 "En BestChange compará tasa, reserva y calificación de cambistas.",
+                 f'Para cripto — hacé una <a href="{PREF[lang]}/aml/">verificación AML de la dirección</a>.',
+                 "Andá al cambista elegido y completá la operación."]
         faq_q1, faq_a1 = f"¿Cómo intercambiar {name} ({ticker})?", "A través del monitoreo BestChange — muestra las tasas de las oficinas de cambio."
-        faq_q2, faq_a2 = f"¿Cómo verificar la limpieza de {ticker}?", "El intercambio se realiza en oficinas del monitoreo BestChange. Para cripto puedes hacer una verificación AML de la dirección."
+        faq_q2, faq_a2 = f"¿Cómo verificar la limpieza de {ticker}?", "El intercambio se realiza en oficinas del monitoreo BestChange. Para cripto podés hacer una verificación AML de la dirección."
     elif lang in ("en", "es"):
         if _prc:
             title = f"{name} ({ticker}) price today — {_prc} USDT · exchange | {S['name']}"
@@ -3493,9 +3493,9 @@ def render_pair(f, t, lang):
                 + "cómo intercambiar, verificación AML de direcciones. Monitoreo BestChange.")
         h1 = f"Intercambiar {fN} <span class=\"tk\">{fT}</span> a {tN} <span class=\"tk\">{tT}</span>"
         h_how = f"Cómo intercambiar {fT} a {tT}"
-        steps = [f"Abre la lista de cambistas BestChange para {fN} → {tN}.",
-                 "Compara tasa, reserva y calificación de cambistas.",
-                 "Completa el intercambio en el sitio del cambista elegido."]
+        steps = [f"Abrí la lista de cambistas BestChange para {fN} → {tN}.",
+                 "Compará tasa, reserva y calificación de cambistas.",
+                 "Completá el intercambio en el sitio del cambista elegido."]
         rev = f'<a href="{pair_url(lang, t, f)}">Intercambio inverso: {tN} → {fN}</a> · ' if (t, f) in PAIR_SET else ""
         hub = f'<a href="{PREF[lang]}/na/{t}/">Todas las monedas → {tN}</a> · ' if t in BANK_HUB_SET else ""
         rel = f'{rev}{hub}<a href="{cpage(lang, f)}">Acerca de {fN}</a> · <a href="{cpage(lang, t)}">Acerca de {tN}</a>'
@@ -4717,22 +4717,25 @@ FAQ_ITEMS = {
          "cuántas confirmaciones exija el destinatario o el cambista."),
         ("¿Qué es la reserva de un cambista?",
          "Cuánta moneda tiene disponible el cambista para una dirección ahora mismo. Si la reserva es menor que tu monto, "
-         "el intercambio no se realizará o tardará. Revisa la reserva junto con la tasa y la calificación."),
+         "el intercambio no se realizará o tardará. Revisá la reserva junto con la tasa y la calificación."),
         ("¿En qué se diferencia un cambista de un exchange?",
-         "El cambista completa la operación a tasa y reserva fijas — rápido y sin órdenes. Un exchange es una plataforma "
+         "El cambista completá la operación a tasa y reserva fijas — rápido y sin órdenes. Un exchange es una plataforma "
          "con libro de órdenes donde compradores y vendedores fijan el precio. Para un intercambio puntual se suele elegir un cambista."),
         ("¿Cómo elijo la mejor tasa de cambio?",
-         "Mira no solo la mejor tasa, sino la reserva, la calificación y las reseñas del cambista, además de los límites y "
+         "Mirá no solo la mejor tasa, sino la reserva, la calificación y las reseñas del cambista, además de los límites y "
          "la comisión de red. Una tasa demasiado buena puede significar poca reserva o condiciones ocultas. El monitoreo BestChange ayuda a comparar."),
         ("¿Qué es la verificación AML de una dirección cripto?",
          "Evalúa si una dirección o transacción está vinculada a fraude, darknet y sanciones. Se hace antes de recibir o "
          "intercambiar un monto grande para reducir el riesgo de monedas «sucias» y fondos congelados."),
         ("¿Es seguro intercambiar cripto en un cambista?",
-         "El riesgo es menor si eliges un cambista con alta calificación, historial y reserva suficiente del monitoreo, y haces "
-         "una verificación AML para cripto. Nadie garantiza nada — decides intercambiar por tu cuenta."),
+         "El riesgo es menor si elegís un cambista con alta calificación, historial y reserva suficiente del monitoreo, y hacés "
+         "una verificación AML para cripto. Nadie garantiza nada — decidís intercambiar por tu cuenta."),
         ("¿Qué es SEPA y cómo se relaciona con el intercambio?",
          "SEPA es la zona de pagos en euros: transferencias bancarias rápidas en EUR. Muchos cambistas pagan en euros vía "
-         "SEPA o tarjetas — rápido y cómodo; ten en cuenta los límites de tu banco."),
+         "SEPA o tarjetas — rápido y cómodo; tené en cuenta los límites de tu banco."),
+        ("¿Puedo intercambiar a pesos argentinos (ARS)?",
+         "Sí, cuando hay liquidez: buscá en el catálogo direcciones hacia Mercado Pago, transferencias bancarias ARS o "
+         "efectivo ARS, y compará tasa y reserva antes de operar."),
     ],
     "fr": [
         ("Quel réseau USDT est le moins cher pour transférer ?",
@@ -4906,13 +4909,13 @@ def render_widget_page(lang):
                "Несколько виджетов на странице — вставьте несколько блоков <code>div</code>."]
     elif lang == "es":
         title = f"Widgets de tasas y convertidor para tu sitio — gratis | {S['name']}"
-        desc = "Widgets integrables gratis para tu sitio: tasa de cambio en vivo y miniconvertidor cripto. Pega el código — se actualiza solo."
+        desc = "Widgets integrables gratis para tu sitio: tasa de cambio en vivo y miniconvertidor cripto. Pegá el código — se actualiza solo."
         h1 = "Widgets para tu sitio web"
-        lead = ("Pon una tasa en vivo o un miniconvertidor en tu sitio — se actualizan solos, gratis. "
-                "Solo pega el código en el HTML de tu página.")
+        lead = ("Poné una tasa en vivo o un miniconvertidor en tu sitio — se actualizan solos, gratis. "
+                "Solo pegá el código en el HTML de tu página.")
         t_rate, t_conv, h_pairs, h_how = "Widget de tasa", "Widget convertidor (ingreso de monto)", "Pares disponibles (data-pair)", "Cómo funciona"
-        t_cfg, cfg_lead, l_give, l_get = "Constructor de widgets — cualquier par", "Elige cualquier par del catálogo — obtén el código listo y una vista previa.", "Entregas", "Recibes"
-        how = ["Copia el código del widget y pégalo en el HTML de tu página.",
+        t_cfg, cfg_lead, l_give, l_get = "Constructor de widgets — cualquier par", "Elegí cualquier par del catálogo — obtené el código listo y una vista previa.", "Entregas", "Recibes"
+        how = ["Copiá el código del widget y pégalo en el HTML de tu página.",
                "Tasa: <code>data-pair</code> (popular) o <code>data-from</code>+<code>data-to</code> (cualquier par). Convertidor: <code>data-widget=\"converter\"</code>.",
                "El script obtiene las tasas actuales y actualiza el widget.",
                "Para varios widgets en una página — agrega varios bloques <code>div</code>."]
@@ -5191,17 +5194,17 @@ def render_bank_hub(to_slug, lang):
         desc = (f"Intercambiar cripto a {name}: {len(rows)} direcciones, mejores tasas del monitoreo BestChange. "
                 f"USDT, Bitcoin, Ethereum y otras monedas a {name}. Calculadora, consejos AML.")
         intro = (f"Direcciones para intercambiar cripto a <b>{name}</b> con las mejores tasas del monitoreo "
-                 f"<b>BestChange</b>. Elige una moneda abajo — se abrirá la lista de cambistas de esa dirección.")
+                 f"<b>BestChange</b>. Elegí una moneda abajo — se abrirá la lista de cambistas de esa dirección.")
         h1 = f"Intercambiar cripto a {name}"
         th = ("Moneda", "Mejor tasa", "Cambistas", "Reserva total")
         openw, howh = "Abrir", f"Cómo intercambiar cripto a {name}"
-        steps = [f"Elige una moneda para intercambiar a {name} en la tabla.",
-                 "En BestChange compara tasa, reserva y calificación de cambistas.",
-                 f'Para cripto — haz una <a href="{PREF[lang]}/aml/">verificación AML de la dirección</a>.',
-                 f"Completa el intercambio y recibe los fondos en {name}."]
+        steps = [f"Elegí una moneda para intercambiar a {name} en la tabla.",
+                 "En BestChange compará tasa, reserva y calificación de cambistas.",
+                 f'Para cripto — hacé una <a href="{PREF[lang]}/aml/">verificación AML de la dirección</a>.',
+                 f"Completá el intercambio y recibe los fondos en {name}."]
         note = "Mejor tasa entre cambistas; la reserva es total por dirección. " + updated_str(lang)
         q1 = f"¿Cómo intercambiar USDT a {name}?"
-        a1 = f"Elige la dirección USDT → {name} en la tabla, compara cambistas en BestChange por tasa y reserva, y completa el intercambio."
+        a1 = f"Elegí la dirección USDT → {name} en la tabla, compará cambistas en BestChange por tasa y reserva, y completá el intercambio."
         guide = ""
     elif lang in ("en", "es"):
         title = f"Exchange crypto to {name} — rates and all coins ({len(rows)}) | {S['name']}"
@@ -5344,14 +5347,14 @@ def aml_checker(lang):
         return ('<div class="amlbox" style="border:2px solid #55ffff;padding:14px;margin:10px 0;background:#001a1a">'
                 '<h2 id="check">Revisar dirección</h2>'
                 '<div class="amlbox" style="border:2px solid #55ffff;padding:14px;margin:10px 0;background:#001a1a">'
-                '<input id="amlAddr" type="text" autocomplete="off" spellcheck="false" placeholder="Pega una dirección cripto (BTC, ETH, TRON, LTC, XMR)" '
+                '<input id="amlAddr" type="text" autocomplete="off" spellcheck="false" placeholder="Pegá una dirección cripto (BTC, ETH, TRON, LTC, XMR)" '
                 'style="width:100%;box-sizing:border-box;padding:9px;background:#000;color:#0f0;'
                 'border:1px solid #55ffff;font-family:inherit">'
                 '<button id="amlBtn" type="button" style="margin-top:8px;padding:9px 18px;background:#0000aa;'
                 'color:#fff;border:1px solid #55ffff;cursor:pointer;font-family:inherit">Revisar</button>'
                 '<div id="amlResult" style="margin-top:12px"></div>'
                 f'<p class="updnote">Chequeo básico: formato, lista OFAC ({cnt} direcciones) y datos on-chain. NO es score AML completo.</p>{ad_mark(lang)}</div>'
-                "<script>(function(){var I=" + json.dumps({"ph": "Pega una dirección cripto (BTC, ETH, TRON, LTC, XMR)", "btn": "Revisar", "net": "Red", "unrec": "Dirección no reconocida. Soportadas: BTC, ETH, TRON, LTC, XMR.", "sanc": "⚠️ La dirección está en la lista OFAC", "clean": "✅ No está en la lista OFAC", "expl": "Ver transacciones en el explorador →", "loading": "Cargando datos on-chain…", "onchain": "On-chain", "onchainFail": "On-chain no disponible — mira el explorador.", "tx": "transacciones", "bal": "saldo", "listNA": "Lista no disponible — intenta luego."}, ensure_ascii=False) + ";" + _AML_JS + "})();</script>" + geo_ref_script("amlFull", "https://www.bestchange.com/report/"))
+                "<script>(function(){var I=" + json.dumps({"ph": "Pegá una dirección cripto (BTC, ETH, TRON, LTC, XMR)", "btn": "Revisar", "net": "Red", "unrec": "Dirección no reconocida. Soportadas: BTC, ETH, TRON, LTC, XMR.", "sanc": "⚠️ La dirección está en la lista OFAC", "clean": "✅ No está en la lista OFAC", "expl": "Ver transacciones en el explorador →", "loading": "Cargando datos on-chain…", "onchain": "On-chain", "onchainFail": "On-chain no disponible — mira el explorador.", "tx": "transacciones", "bal": "saldo", "listNA": "Lista no disponible — intenta luego."}, ensure_ascii=False) + ";" + _AML_JS + "})();</script>" + geo_ref_script("amlFull", "https://www.bestchange.com/report/"))
     i18n = {
         "ph": "Вставьте криптоадрес (BTC, ETH, TRON, LTC, XMR)" if ru else "Paste a crypto address (BTC, ETH, TRON, LTC, XMR)",
         "btn": "Проверить" if ru else "Check",
@@ -5484,8 +5487,8 @@ def compliance_pages(lang):
 <p><b>BestChange</b> es un monitoreo de cambistas de moneda electrónica y cripto. Reúne tasas, reservas y
    comisiones de docenas de oficinas y las muestra en un lugar — sin revisar cada sitio a mano.</p>
 <h2>Cómo funciona</h2>
-<ol class="steps"><li>Eliges una dirección de intercambio.</li><li>BestChange muestra cambistas ordenados por tasa.</li>
-<li>Miras tasa, calificación, reserva y reseñas, y eliges la oficina adecuada.</li><li>Vas y completas la operación en el sitio del cambista.</li></ol>
+<ol class="steps"><li>Elegís una dirección de intercambio.</li><li>BestChange muestra cambistas ordenados por tasa.</li>
+<li>Mirás tasa, calificación, reserva y reseñas, y elegís la oficina adecuada.</li><li>Vas y completás la operación en el sitio del cambista.</li></ol>
 <h2>Sobre el monitoreo</h2>
 <p>Solo aparecen cambistas con calificación y reservas. RateScout es un servicio de información independiente que ayuda a
    orientarse y lleva a la lista de cambistas de BestChange. No procesamos intercambios.</p>""",
@@ -5518,9 +5521,9 @@ def compliance_pages(lang):
 <p>Esta Política describe el tratamiento de datos de visitantes de {S['domain']}.</p>
 <h2>Qué datos</h2><ul><li>datos técnicos del navegador (IP, tipo de navegador/SO, referer, fecha/hora);</li>
 <li>analítica web anonimizada;</li><li>cookies.</li></ul>
-<h2>Analítica</h2><p>Usamos Yandex.Metrica y Google Analytics (datos anonimizados). Puedes desactivar las cookies en el navegador.</p>
+<h2>Analítica</h2><p>Usamos Yandex.Metrica y Google Analytics (datos anonimizados). Podés desactivar las cookies en el navegador.</p>
 <h2>Derechos</h2><p>Solicitudes, correcciones o borrado de datos — en {S.get('owner_email','')}.
-Actualizado en esta página.</p>""",
+Actualizado en esta página.</p>\n<h2>Datos personales — Ley 25.326 (Argentina)</h2><p>Tratamos solo datos técnicos de navegación y analítica anonimizada (Google Analytics). Conforme a la Ley 25.326 de Protección de los Datos Personales de Argentina, tenés derecho a acceder, rectificar y suprimir tus datos: escribinos a {S.get('owner_email','')}.</p>""",
                     "Privacidad")
         render_page(lang, "usloviya", "Términos de uso",
                     f"Términos de uso de {S['domain']}.",
