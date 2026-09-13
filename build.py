@@ -2370,7 +2370,8 @@ def header(lang, path):
     elif lang == "es":
         switch = (f'<span class="langsw cur">ES</span> · '
                   f'<a class="langsw" data-lang="ru" href="https://ratescout.ru{path}">RU</a> · '
-                  f'<a class="langsw" data-lang="en" href="https://ratescout.ru/en{path}">EN</a>')
+                  f'<a class="langsw" data-lang="en" href="https://ratescout.ru/en{path}">EN</a> · '
+                  f'<a class="langsw" data-lang="fr" href="https://ratescout.info.gf{path}">FR</a>')
         _label = "RU"
     else:  # fr internal (if ever)
         _next, _href = "ru", f"{PREF['ru']}{path}"
