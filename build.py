@@ -2368,16 +2368,12 @@ def header(lang, path):
         _next, _href = "fr", f"{FR_BASE}{_p}"
         _label = "FR"
     elif lang == "es":
-        switch = (f'<span class="langsw cur">ES</span> · '
-                  f'<a class="langsw" data-lang="ru" href="https://ratescout.ru{path}">RU</a> · '
-                  f'<a class="langsw" data-lang="en" href="https://ratescout.ru/en{path}">EN</a> · '
-                  f'<a class="langsw" data-lang="fr" href="https://ratescout.info.gf{path}">FR</a>')
-        _label = "RU"
+        _next, _href = "fr", f"https://ratescout.info.gf{path}"
+        _label = "FR"
     else:  # fr internal (if ever)
         _next, _href = "ru", f"{PREF['ru']}{path}"
         _label = "RU"
-    if lang != "es":
-        switch = f'<a class="langsw" data-lang="{_next}" href="{_href}">{_label}</a>' 
+    switch = f'<a class="langsw" data-lang="{_next}" href="{_href}">{_label}</a>' 
     _tld = S["domain"][len(S["name"].lower()):] if S["domain"].lower().startswith(S["name"].lower()) else ""
     _blog_li = f'<li><a href="{PREF[lang]}/blog/">{tr(lang,"nav_blog")}</a></li>' if lang in ("ru", "en") else ""
     _obzor_li = f'<li><a href="{PREF[lang]}/obzor/sutki/">{tr(lang,"nav_reviews")}</a></li>' if lang in ("ru", "en") else ""
