@@ -476,7 +476,7 @@ def render_home(lang):
                   "url": BASE_URL, "logo": f"{BASE_URL}/assets/og-image.png",
                   "email": S.get("owner_email", ""),
                   # sameAs — привязка сущности к соцпрофилям (Knowledge Graph / entity для GEO/LLMO/NEO)
-                  "sameAs": ["https://t.me/ratescout_kurs", "https://vk.com/ratescout",
+                  "sameAs": ["https://t.me/ratescout_kursen", "https://vk.com/ratescout",
                              "https://dzen.ru/ratescout"],
                   "contactPoint": {"@type": "ContactPoint", "contactType":
                                    ("поддержка" if lang == "ru" else ("customer support" if lang in ("en", "es") else "assistance")),
@@ -2596,7 +2596,7 @@ def footer(lang):
                 "a través del programa de afiliados podemos ganar una comisión.")
         links = (f'<a href="{PREF[lang]}/o-servise/">Acerca de</a> · <a href="{PREF[lang]}/aml/">Verificación AML</a> · '
                  f'<a href="{PREF[lang]}/vidzhet/">Widget</a> · <a href="{PREF[lang]}/redakciya/">Redacción</a> · '
-                 f'<a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Canal de Telegram</a> · '
+                 f'<a href="https://t.me/ratescout_kursen" target="_blank" rel="noopener me">Canal de Telegram</a> · '
                  f'<a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · '
                  f'<a href="{PREF[lang]}/raskrytie/">Aviso legal</a> · '
                  f'<a href="{PREF[lang]}/politika/">Privacidad</a> · <a href="{PREF[lang]}/usloviya/">Términos</a>')
