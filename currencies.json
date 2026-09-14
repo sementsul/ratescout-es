@@ -84,7 +84,7 @@
    "id": 20,
    "name": "Volet",
    "ticker": "TRY",
-   "category": "Digital currencies"
+   "category": "Криптовалюты"
   },
   "bitcoin-bep20": {
    "id": 43,
@@ -126,7 +126,7 @@
    "id": 50,
    "name": "Exmo",
    "ticker": "USDT",
-   "category": "Digital currencies"
+   "category": "Криптовалюты"
   },
   "alfaclick": {
    "id": 52,
@@ -492,7 +492,7 @@
    "id": 109,
    "name": "NixMoney",
    "ticker": "USD",
-   "category": "Digital currencies"
+   "category": "Bank accounts and cards"
   },
   "usd-coin-trc20": {
    "id": 110,
@@ -564,7 +564,7 @@
    "id": 121,
    "name": "Volet",
    "ticker": "RUB",
-   "category": "Digital currencies"
+   "category": "Online banking"
   },
   "zen-euro": {
    "id": 122,
@@ -690,7 +690,7 @@
    "id": 142,
    "name": "Volet",
    "ticker": "UAH",
-   "category": "Digital currencies"
+   "category": "Online banking"
   },
   "utopia-usd": {
    "id": 143,
@@ -1110,7 +1110,7 @@
    "id": 33,
    "name": "Volet",
    "ticker": "KZT",
-   "category": "Digital currencies"
+   "category": "Online banking"
   },
   "rosselhozbank": {
    "id": 34,

@@ -81,7 +81,11 @@ ES_HIDE = {"sberbank", "sberbank-qr-code", "tinkoff", "tinkoff-cash-in", "tinkof
            "rosbank", "rnkb", "rosselhozbank", "mts-bank", "homecredit", "ozon",
            "russtandart", "avangard", "belarusbank"}
 ES_TOP_FIRST = ["sepa", "wise", "wise-euro", "revolut-euro", "revolut-usd",
-                "visa-mastercard-euro", "mercado-pago", "visa-mastercard-ars"]
+                 "visa-mastercard-euro", "mercado-pago", "visa-mastercard-ars"]
+# RU-специфика из глобального топа BestChange (трафик RU): для ES-версии исключаем из TOP —
+# otherwise аргентинский каталог возглавляют СБП/наличные рубли/карты RUB.
+ES_RU_ONLY = {"sbp", "cash-ruble", "visa-mastercard-rub", "mir", "yoomoney",
+              "unionpay", "qiwi", "payeer-rub", "perfectmoney-usd"}
 if "es" in LANGS:
     CUR = {s: i for s, i in CUR.items() if s not in ES_HIDE}
 BLOG_PER_PAGE = 6            # статей на страницу блога (пагинация 1 2 3 …)
@@ -1577,8 +1581,14 @@ def pair_chart(f, t, lang):
         note = (f"1 {fT} = <b>{fmt_rate(last)}</b> {tT} · за период: "
                 f'<b class="{cls}">{sign}{chg:.1f}%</b>. Кросс-курс по данным BestChange, обновление ежечасно. '
                 "Наведите на график — покажет курс и время.")
+    elif lang == "es":
+        title = f"Tendencia de la tasa {fT} → {tT}"
+        ranges = [("24h", "24h"), ("7d", "7d"), ("30d", "30d"), ("1y", "1a"),
+                  ("3y", "3a"), ("5y", "5a"), ("10y", "10a"), ("all", "Todo")]
+        note = (f"1 {fT} = <b>{fmt_rate(last)}</b> {tT} · variación: "
+                f'<b class="{cls}">{sign}{chg:.1f}%</b>. Tasa cruzada, datos BestChange, cada hora. '
+                "Pasá el cursor sobre el gráfico para ver tasa y hora.")
     elif lang in ("en", "es"):
-        title = f"{fT} → {tT} rate trend"
         ranges = [("24h", "24h"), ("7d", "7d"), ("30d", "30d"), ("1y", "1y"),
                   ("3y", "3y"), ("5y", "5y"), ("10y", "10y"), ("all", "All")]
         note = (f"1 {fT} = <b>{fmt_rate(last)}</b> {tT} · change: "
@@ -1818,7 +1828,8 @@ if os.path.exists(_tp):
         TOP = []
 TOP_SET = {(p["from"], p["to"]) for p in TOP}
 if "es" in LANGS:
-    TOP = [p for p in TOP if p.get("from") not in ES_HIDE and p.get("to") not in ES_HIDE]
+    TOP = [p for p in TOP if p.get("from") not in ES_HIDE and p.get("to") not in ES_HIDE
+           and p.get("from") not in ES_RU_ONLY and p.get("to") not in ES_RU_ONLY]
     _es_pri = {s: i for i, s in enumerate(ES_TOP_FIRST)}
     TOP.sort(key=lambda p: min(_es_pri.get(p.get("from"), 99), _es_pri.get(p.get("to"), 99)))
     TOP_SET = {(p["from"], p["to"]) for p in TOP}
@@ -1853,10 +1864,25 @@ PAIR_PAGES = [p for p in PAIR_PAGES if not ((p["from"], p["to"]) in _seen or _se
 PAIR_SET = {(p["from"], p["to"]) for p in PAIR_PAGES}
 if "es" in LANGS:
     _es_pri2 = {s: i for i, s in enumerate(ES_TOP_FIRST)}
-    _es_pool = sorted(
+    # витрина главной: round-robin по якорным валютам (sepa, wise, mercado-pago, …),
+    # иначе все 16 слотов забивает один sepa и ARS-угол теряется.
+
+    def _es_anchor(p):
+        return min(_es_pri2.get(p.get("from"), 99), _es_pri2.get(p.get("to"), 99))
+
+    _es_cand = sorted(
         [p for p in EXTRA_PAIRS
          if _es_pri2.get(p.get("from"), 99) < 99 or _es_pri2.get(p.get("to"), 99) < 99],
-        key=lambda p: min(_es_pri2.get(p.get("from"), 99), _es_pri2.get(p.get("to"), 99)))[:16]
+        key=_es_anchor)
+    _es_pool, _es_per_anchor = [], {}
+    for p in _es_cand:
+        _a = _es_anchor(p)
+        if _es_per_anchor.get(_a, 0) >= 2:
+            continue
+        _es_per_anchor[_a] = _es_per_anchor.get(_a, 0) + 1
+        _es_pool.append(p)
+        if len(_es_pool) >= 16:
+            break
     if not _es_pool:
         _es_pool = EXTRA_PAIRS[:16]
     _es_seen = set()
@@ -2246,6 +2272,7 @@ def head(lang, title, desc, path, extra="", og_image=None, og_w=1200, og_h=630):
 <meta name="twitter:description" content="{desc}">
 <meta name="twitter:image" content="{og}">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+{('<meta name="google-site-verification" content="' + os.environ.get("GSC_VERIFICATION", "") + '">') if os.environ.get("GSC_VERIFICATION") else ""}
 <meta name="yandex-verification" content="4b39ef5046fa7e8a">
 <meta name="zen-verification" content="AvXwV96CkkGrgi2Dn4bnu0c3gAx52ezYYqNU79rdSigVe2IAJhfqL8E512dfovL5">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -3406,6 +3433,36 @@ def pair_unique(fi, ti, r, lang):
         q3 = f"Сколько обменников меняют {fN} на {tN}?"
         a3 = (f"Сейчас {r['count']} обменников по направлению {fT} → {tT}, суммарный резерв "
               f"{fmt_rate(r['reserve'])} {tT}." if r else "")
+    elif lang == "es":
+        # voseo + ángulo ARS: las direcciones a/desde pesos se explican con Mercado Pago / transferencia ARS.
+        _ars = ("ARS" in fT or "ARS" in tT or "Mercado Pago" in fN or "Mercado Pago" in tN)
+        if fc and tc:
+            ctx = (f"La dirección <b>{fN} → {tN}</b> es un swap de una criptomoneda a otra sin salir a fíat. "
+                   f"Los cambistas arman la tasa {fT}/{tT} vía pares a USDT y mantienen reserva en {tT}. "
+                   f"Se usa para pasar de {fT} a {tT} — por ejemplo, fijar ganancia "
+                   f"{'en una stablecoin' if tstable else 'en '+tT} o cambiar de red. "
+                   f"Compará la tasa, la reserva y la calificación antes de operar.")
+        elif fc and not tc:
+            ctx = (f"La dirección <b>{fN} → {tN}</b> es un retiro de la cripto {fT} a «{tcat}» ({tN}). Vos enviás {fT} "
+                   f"desde tu billetera y el cambista te paga el equivalente en {tT}. La tasa y la reserva en {tT} "
+                   f"varían por cambista — el monitoreo BestChange muestra la mejor. "
+                   f"{'Si recibís pesos (ARS), revisá bien la tasa contra el dólar cripto y las comisiones de acreditación. ' if _ars else ''}"
+                   f"Antes de un monto grande, verificá la dirección y los límites.")
+        elif not fc and tc:
+            ctx = (f"La dirección <b>{fN} → {tN}</b> es una compra de la cripto {tT} con «{fcat}» ({fN}). Vos pagás en {fT} "
+                   f"y recibís {tT} en tu billetera. Compará la tasa y la comisión de la red de recepción de {tT} antes de intercambiar."
+                   f"{' Si pagás en pesos, tené en cuenta que la tasa ARS suele moverse con el mercado.' if _ars else ''}")
+        else:
+            ctx = (f"La dirección <b>{fN} → {tN}</b> mueve valor entre sistemas de pago: «{fcat}» → «{tcat}». "
+                   f"Los cambistas sirven cuando la transferencia directa {fN} → {tN} no está disponible o no conviene. "
+                   f"Compará tasa, reserva y tiempos de acreditación.")
+        if not r:
+            ctx += (f" La tasa del momento se confirma en el monitoreo BestChange: abrí la lista de cambistas, "
+                    f"compará tasa y reserva, y completá la operación en el sitio del cambista elegido.")
+        h_ctx, amt_h, amt_cols = "Sobre esta dirección", "Cuánto recibís a la tasa actual", ("Entregás", "Recibís")
+        q3 = f"¿Cuántos cambistas cambian {fN} a {tN}?"
+        a3 = (f"Ahora hay {r['count']} cambistas en {fT} → {tT}, con reserva total de "
+              f"{fmt_rate(r['reserve'])} {tT}." if r else "")
     elif lang in ("en", "es"):
         if fc and tc:
             ctx = (f"The <b>{fN} → {tN}</b> direction is converting one cryptocurrency into another (a swap) without "
@@ -3494,8 +3551,9 @@ def render_pair(f, t, lang):
         h1 = f"Intercambiar {fN} <span class=\"tk\">{fT}</span> a {tN} <span class=\"tk\">{tT}</span>"
         h_how = f"Cómo intercambiar {fT} a {tT}"
         steps = [f"Abrí la lista de cambistas BestChange para {fN} → {tN}.",
-                 "Compará tasa, reserva y calificación de cambistas.",
-                 "Completá el intercambio en el sitio del cambista elegido."]
+                 "Compará tasa, reserva y calificación de cambistas."] + \
+                ([f'Para cripto — hacé una <a href="{PREF[lang]}/aml/">verificación AML de la dirección</a>.'] if fi["category"] == "Криптовалюты" else []) + \
+                ["Completá el intercambio en el sitio del cambista elegido."]
         rev = f'<a href="{pair_url(lang, t, f)}">Intercambio inverso: {tN} → {fN}</a> · ' if (t, f) in PAIR_SET else ""
         hub = f'<a href="{PREF[lang]}/na/{t}/">Todas las monedas → {tN}</a> · ' if t in BANK_HUB_SET else ""
         rel = f'{rev}{hub}<a href="{cpage(lang, f)}">Acerca de {fN}</a> · <a href="{cpage(lang, t)}">Acerca de {tN}</a>'
@@ -3670,6 +3728,10 @@ def render_blog(lang):
         base_title = f"Блог — гайды по обмену криптовалют и валют | {S['name']}"
         desc = "Статьи и гайды: сети USDT, комиссии, AML-проверка, словарь терминов обмена."
         h1, lead = "Блог", "Справочные материалы и гайды об обмене криптовалют и валют."
+    elif lang == "es":
+        base_title = f"Blog — guías de intercambio de cripto y monedas | {S['name']}"
+        desc = "Artículos y guías: redes de USDT, comisiones, verificación AML, cómo cambiar a pesos (ARS)."
+        h1, lead = "Blog", "Materiales de referencia y guías sobre intercambio de criptomonedas y monedas. Acá aprendés a comparar tasas y operar con pesos."
     else:
         base_title = f"Blog — crypto and currency exchange guides | {S['name']}"
         desc = "Articles and guides: USDT networks, fees, AML check, exchange glossary."
@@ -3682,18 +3744,19 @@ def render_blog(lang):
             f'<div class="apreview">{a.get("description","")}</div><div class="adate">{a.get("date","")}</div></li>'
             for a in chunk)
         title = base_title if p == 1 else (
-            f"Блог, страница {p} | {S['name']}" if lang == "ru" else f"Blog, page {p} | {S['name']}")
+            f"Блог, страница {p} | {S['name']}" if lang == "ru" else (f"Blog, página {p} | {S['name']}" if lang == "es" else f"Blog, page {p} | {S['name']}"))
         ld = jsonld({"@context": "https://schema.org", "@type": "Blog", "name": f"{S['name']} Blog",
                      "url": f"{BASE_URL}{PREF[lang]}/blog/"})
         ld += (f'\n<link rel="alternate" type="application/rss+xml" '
-               f'title="{S["name"]} {"блог" if lang=="ru" else "blog"} RSS" '
+               f'title="{S["name"]} {"блог" if lang=="ru" else ("blog" if lang=="es" else "blog")} RSS" '
                f'href="{PREF[lang]}/blog/rss.xml">')
         if p > 1:
             ld += f'\n<link rel="prev" href="{blog_page_path(lang, p-1)}">'
         if p < pages:
             ld += f'\n<link rel="next" href="{blog_page_path(lang, p+1)}">'
         pageinfo = "" if p == 1 else (f' <span class="pg-of">— страница {p} из {pages}</span>' if lang == "ru"
-                                      else f' <span class="pg-of">— page {p} of {pages}</span>')
+                                      else (f' <span class="pg-of">— página {p} de {pages}</span>' if lang == "es"
+                                      else f' <span class="pg-of">— page {p} of {pages}</span>'))
         body = f"""{header(lang, path)}
 <div id="main">
   <div id="content" style="float:none;width:100%">
@@ -3711,7 +3774,7 @@ def render_blog(lang):
 </div>
 {ld}
 {footer(lang)}"""
-        pdesc = desc if p == 1 else (desc + (f" Страница {p} из {pages}." if lang == "ru" else f" Page {p} of {pages}."))
+        pdesc = desc if p == 1 else (desc + (f" Страница {p} из {pages}." if lang == "ru" else (f" Página {p} de {pages}." if lang == "es" else f" Page {p} of {pages}.")))
         write(lang, path, head(lang, title, pdesc, path, ld) + body)
 
 
@@ -3721,9 +3784,10 @@ def render_rss(lang):
         return
     base = BASE_URL + PREF[lang]
     self_url = f"{base}/blog/rss.xml"
-    ttl = f"{S['name']} — блог" if lang == "ru" else f"{S['name']} — Blog"
+    ttl = f"{S['name']} — блог" if lang == "ru" else (f"{S['name']} — Blog" if lang == "es" else f"{S['name']} — Blog")
     dsc = ("Гайды по обмену криптовалют и валют." if lang == "ru"
-           else "Guides on crypto and currency exchange.")
+           else ("Guías de intercambio de cripto y monedas." if lang == "es"
+           else "Guides on crypto and currency exchange."))
     items = ""
     for a in arts:
         try:
@@ -4641,12 +4705,12 @@ def render_article(a, lang):
                      "publisher": {"@type": "Organization", "name": S["name"],
                                    "logo": {"@type": "ImageObject", "url": f"{BASE_URL}/assets/og-image.png"}},
                      "mainEntityOfPage": BASE_URL + PREF[lang] + path})
-    back = "← All articles" if lang in ("en", "es") else "← Все статьи"
+    back = ("← Todos los artículos" if lang == "es" else ("← All articles" if lang == "en" else "← Все статьи"))
     body = f"""{header(lang, path)}
 <div id="main">
   <div id="content" style="float:none;width:100%">
     <nav class="crumbs"><a href="{PREF[lang]}/">{tr(lang,'monitor')}</a> / <a href="{PREF[lang]}/blog/">{tr(lang,'nav_blog')}</a> / {a['title']}</nav>
-    <article class="post"><div class="adate">{'Опубликовано' if lang=='ru' else 'Published'}: {a.get('date','')} · <a href="{PREF[lang]}/redakciya/">{'Редакция ' if lang=='ru' else 'Editorial · '}{S['name']}</a></div>{a['html']}</article>
+    <article class="post"><div class="adate">{('Publicado' if lang=='es' else ('Published' if lang=='en' else 'Опубликовано'))}: {a.get('date','')} · <a href="{PREF[lang]}/redakciya/">{('Redacción ' if lang=='es' else ('Editorial · ' if lang=='en' else 'Редакция '))}{S['name']}</a></div>{a['html']}</article>
     <p><a href="{PREF[lang]}/blog/">{back}</a></p>
   </div>
 </div>

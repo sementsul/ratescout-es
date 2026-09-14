@@ -14,9 +14,20 @@ import sys
 import urllib.parse
 import urllib.request
 
-GSC_SITE = os.environ.get("GSC_SITE") or "https://ratescout.ru/"
-SITEMAP = "https://ratescout.ru/sitemap.xml"
-Y_HOST = (os.environ.get("YANDEX_HOST") or "https://ratescout.ru").rstrip("/")
+ROOT = os.path.dirname(os.path.abspath(__file__))
+
+
+def _domain():
+    try:
+        return json.load(open(os.path.join(ROOT, "data.json"), encoding="utf-8"))["site"]["domain"]
+    except (OSError, ValueError, KeyError):
+        return "ratescout.ru"
+
+
+_DOMAIN = _domain()
+GSC_SITE = os.environ.get("GSC_SITE") or f"https://{_DOMAIN}/"
+SITEMAP = f"https://{_DOMAIN}/sitemap.xml"
+Y_HOST = (os.environ.get("YANDEX_HOST") or f"https://{_DOMAIN}").rstrip("/")
 WM = "https://api.webmaster.yandex.net/v4"
 
 

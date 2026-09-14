@@ -24,7 +24,19 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-SITE = os.environ.get("GSC_SITE", "sc-domain:ratescout.ru")
+
+
+def _default_site():
+    if os.environ.get("GSC_SITE"):
+        return os.environ["GSC_SITE"]
+    try:
+        d = json.load(open(os.path.join(ROOT, "data.json"), encoding="utf-8"))["site"]["domain"]
+        return f"sc-domain:{d}"
+    except (OSError, ValueError, KeyError):
+        return "sc-domain:ratescout.ru"
+
+
+SITE = _default_site()
 try:
     _CUR = json.load(open(os.path.join(ROOT, "currencies.json"), encoding="utf-8"))["currencies"]
 except (OSError, ValueError):

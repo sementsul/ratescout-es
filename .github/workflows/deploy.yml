@@ -82,6 +82,8 @@ jobs:
         run: python3 fetch_fng.py || echo "⚠️ индекс страха пропущен"
 
       - name: Build static site
+        env:
+          GSC_VERIFICATION: ${{ secrets.GSC_VERIFICATION }}
         run: python3 build.py
 
       - name: Persist rate history back to repo (once/day, skip ci)

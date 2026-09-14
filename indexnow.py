@@ -11,7 +11,16 @@ import re
 import urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-HOST = "ratescout.ru"
+
+
+def _domain():
+    try:
+        return json.load(open(os.path.join(ROOT, "data.json"), encoding="utf-8"))["site"]["domain"]
+    except (OSError, ValueError, KeyError):
+        return "ratescout.ru"
+
+
+HOST = os.environ.get("INDEXNOW_HOST") or _domain()
 KEY = "b394aeced6a92ed48a09e2bd30099905"
 ENDPOINT = "https://api.indexnow.org/indexnow"
 
