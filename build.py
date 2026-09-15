@@ -4311,9 +4311,17 @@ def make_og_card(src_path, out_path, W=1200, H=630):
 
 def make_daily_image(out_path, date, gainers, losers, lang="ru"):
     """Картинка для Telegram: топ роста/падения за сутки с 24ч-графиками (без emoji — DejaVu их не рисует)."""
-    lab = (("[⇄] Крипторынок за сутки", "▲ Топ роста", "▼ Топ падения", "Полный обзор: ratescout.ru/obzor/sutki")
-           if lang == "ru" else
-           ("[⇄] Crypto market · 24h", "▲ Top gainers", "▼ Top losers", "Full review: ratescout.ru/en/obzor/sutki"))
+    _lab = {
+        "ru": ("[⇄] Крипторынок за сутки", "▲ Топ роста", "▼ Топ падения",
+               "Полный обзор: ratescout.ru/obzor/sutki", "ratescout.ru"),
+        "es": ("[⇄] Criptomercado · 24h", "▲ Top subidas", "▼ Top bajadas",
+               "Resumen completo: ratescout.oc.com.ar/obzor/sutki", "ratescout.oc.com.ar"),
+        "en": ("[⇄] Crypto market · 24h", "▲ Top gainers", "▼ Top losers",
+               "Full review: ratescout.ru/en/obzor/sutki", "ratescout.ru"),
+        "fr": ("[⇄] Marché crypto · 24h", "▲ Top hausses", "▼ Top baisses",
+               "Résumé complet : ratescout.info.gf/obzor/sutki", "ratescout.info.gf"),
+    }
+    lab = _lab.get(lang, _lab["en"])
     W, H = 1080, 1080
     img = Image.new("RGB", (W, H), (11, 11, 11))
     dr = ImageDraw.Draw(img)
@@ -4323,7 +4331,7 @@ def make_daily_image(out_path, date, gainers, losers, lang="ru"):
     fr = ImageFont.truetype(FONT_BOLD, 36)
     ff = ImageFont.truetype(FONT_REG, 28)
     dr.text((56, 44), lab[0], font=fb, fill=(85, 255, 255))
-    dr.text((56, 108), f"{date} · ratescout.ru", font=ff, fill=(150, 150, 150))
+    dr.text((56, 108), f"{date} · {lab[4]}", font=ff, fill=(150, 150, 150))
 
     def section(title, items, y0, col):
         dr.text((56, y0), title, font=fh, fill=col)
@@ -4472,9 +4480,34 @@ def _fl_line(t, p, liq, chg):
 
 def full_list_text(lang="ru"):
     it = _full_list_items()
-    h = (f"📋 Все валюты ({len(it)}) — цена USDT · изм.24ч · обменников:" if lang == "ru"
-         else f"📋 All currencies ({len(it)}) — price USDT · 24h · exchangers:")
+    if lang == "ru":
+        h = f"📋 Все валюты ({len(it)}) — цена USDT · изм.24ч · обменников:"
+    elif lang == "es":
+        h = (f"📋 Todas las monedas ({len(it)}) — precio USDT · var.24h · cambistas:")
+    elif lang == "fr":
+        h = (f"📋 Toutes les monnaies ({len(it)}) — prix USDT · var.24h · changeurs :")
+    else:
+        h = f"📋 All currencies ({len(it)}) — price USDT · 24h · exchangers:"
     return h + "\n\n" + "\n".join(_fl_line(*x) for x in it)
+
+
+def _coins_json(limit=400):
+    """Структурный список валют для Blogger-постов/виджетов: слаг нужен для ссылок
+    на страницы /valuta/<slug>/ на языке поста. Сорт по ликвидности, как в full_list."""
+    out = []
+    for slug, info in CUR.items():
+        price, liq = _usdt_price(slug)
+        if slug == "tether-trc20":
+            price = 1.0
+        chg = CHG_BY.get(slug, {}).get("24h")
+        if chg is not None and abs(chg) > 300:
+            chg = None
+        out.append({"slug": slug, "ticker": info["ticker"],
+                    "price": fmt_rate(price) if price else "—",
+                    "chg": ((("+" if chg >= 0 else "") + f"{chg:.1f}%") if chg is not None else "—"),
+                    "liq": liq or 0})
+    out.sort(key=lambda x: x["liq"], reverse=True)
+    return out[:limit]
 
 
 def full_list_html(lang="ru"):
@@ -4522,13 +4555,95 @@ def write_daily_digest():
     json.dump({"has_data": True, "caption": "\n".join(lines), "image": img_url,
                "url": f"{BASE_URL}/obzor/sutki/", "buttons": _digest_buttons("/obzor/sutki/"),
                "full_list": fl, "full_list_url": f"{BASE_URL}/daily-all.txt",
+               "coins": _coins_json(),
                "short": short, "title": f"Крипторынок за сутки · {now}"},
               open(out, "w", encoding="utf-8"), ensure_ascii=False)
     print(f"daily: дайджест готов{' с картинкой' if img_url else ' (без картинки)'}")
 
 
+def _digest_movers_json(out, txt_path, lang, site, pref, review_path, coin_limit=400):
+    """Дневной дайджест-движений на языке lang → out (+txt-список): источник для Blogger-поста
+    на этом языке. site — базовый домен языковой версии сайта, pref — префикс языка ('' или '/en')."""
+    movers = _daily_movers()
+    gainers = [m for m in movers if m[1] > 0][:5]
+    losers = sorted([m for m in movers if m[1] < 0], key=lambda x: x[1])[:5]
+    fl = full_list_text(lang)
+    open(txt_path, "w", encoding="utf-8").write(fl)
+    if len(movers) < 5 or not (gainers or losers):
+        json.dump({"has_data": False}, open(out, "w"))
+        print(f"daily-{lang}: данных мало — дайджест пропущен")
+        return
+    now = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+    img_name = f"daily-24h-{lang}.png"
+    img_url = ""
+    if COVERS_OK:
+        make_daily_image(os.path.join(DIST, "assets", img_name), now, gainers, losers, lang=lang)
+        img_url = f"{BASE_URL}/assets/{img_name}"
+    if lang == "es":
+        lines = [f"📊 Criptomercado en 24h · {now}", "", "📈 Top subidas:"]
+        lines += [f"• {CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers]
+        lines += ["", "📉 Top bajadas:"]
+        lines += [f"• {CUR[s]['ticker']} {p:.1f}%" for s, p in losers]
+        lines += ["", f"📊 Resumen completo y gráficos → {site}{pref}{review_path}", "",
+                  "📢 Nuestros canales: Blogger https://ratescout-es.blogspot.com/", "",
+                  "#cripto #tasas #resumen"]
+        short = (f"📊 Cripto 24h {now}\n📈 "
+                 + " · ".join(f"{CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers[:3])
+                 + "\n📉 " + " · ".join(f"{CUR[s]['ticker']} {p:.1f}%" for s, p in losers[:3])
+                 + f"\nResumen → {site}{pref}{review_path}\n#cripto")[:490]
+        title = f"Criptomercado en 24h · {now}"
+    elif lang == "fr":
+        lines = [f"📊 Marché crypto · 24h · {now}", "", "📈 Top hausses :"]
+        lines += [f"• {CUR[s]['ticker']} +{p:.1f} %" for s, p in gainers]
+        lines += ["", "📉 Top baisses :"]
+        lines += [f"• {CUR[s]['ticker']} {p:.1f} %" for s, p in losers]
+        lines += ["", f"📊 Résumé complet et graphiques → {site}{pref}{review_path}", "",
+                  "📢 Nos canaux : Blogger https://ratescout-fr.blogspot.com/", "",
+                  "#crypto #taux #résumé"]
+        short = (f"📊 Crypto 24h {now}\n📈 "
+                 + " · ".join(f"{CUR[s]['ticker']} +{p:.1f} %" for s, p in gainers[:3])
+                 + "\n📉 " + " · ".join(f"{CUR[s]['ticker']} {p:.1f} %" for s, p in losers[:3])
+                 + f"\nRésumé → {site}{pref}{review_path}\n#crypto")[:490]
+        title = f"Marché crypto · 24h · {now}"
+    else:
+        lines = [f"📊 Crypto market · 24h · {now}", "", "📈 Top gainers:"]
+        lines += [f"• {CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers]
+        lines += ["", "📉 Top losers:"]
+        lines += [f"• {CUR[s]['ticker']} {p:.1f}%" for s, p in losers]
+        lines += ["", f"Full review & charts → {site}{pref}{review_path}", "",
+                  "📢 Our channels: Blogger https://ratescouten.blogspot.com/", "",
+                  "#crypto #rates"]
+        short = (f"📊 Crypto 24h {now}\n📈 "
+                 + " · ".join(f"{CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers[:3])
+                 + "\n📉 " + " · ".join(f"{CUR[s]['ticker']} {p:.1f}%" for s, p in losers[:3])
+                 + f"\nReview → {site}{pref}{review_path}\n#crypto")[:490]
+        title = f"Crypto market · 24h · {now}"
+    json.dump({"has_data": True, "caption": "\n".join(lines), "image": img_url,
+               "url": f"{site}{pref}{review_path}",
+               "full_list": fl, "full_list_url": f"{BASE_URL}/{os.path.basename(txt_path)}",
+               "coins": _coins_json(coin_limit),
+               "short": short, "title": title},
+              open(out, "w", encoding="utf-8"), ensure_ascii=False)
+    print(f"daily-{lang}: дайджест готов{' с картинкой' if img_url else ' (без картинки)'}")
+
+
+def write_daily_digest_es():
+    """Испанский дайджест → dist/daily-es.json + daily-all-es.txt: источник для ES Blogger-блога."""
+    _digest_movers_json(os.path.join(DIST, "daily-es.json"),
+                        os.path.join(DIST, "daily-all-es.txt"),
+                        "es", BASE_URL, "", "/obzor/sutki/")
+
+
+def write_daily_digest_fr():
+    """Французский дайджест → dist/daily-fr.json + daily-all-fr.txt: источник для FR Blogger-блога."""
+    _digest_movers_json(os.path.join(DIST, "daily-fr.json"),
+                        os.path.join(DIST, "daily-all-fr.txt"),
+                        "fr", FR_BASE, "", "/obzor/sutki/")
+
+
 def write_daily_digest_en():
     """Английский дайджест → dist/daily-en.json + daily-all-en.txt (для EN Telegram-канала). Ссылки на /en/."""
+    EB = "https://ratescout.ru"   # настоящие EN-страницы живут на основном домене (эта сборка — одноязычная ES)
     now_dt = datetime.now(timezone.utc)
     fl = full_list_text("en")
     open(os.path.join(DIST, "daily-all-en.txt"), "w", encoding="utf-8").write(fl)
@@ -4536,7 +4651,7 @@ def write_daily_digest_en():
     now = now_dt.strftime("%d.%m.%Y")
     chans = ("📢 Our channels: Telegram https://t.me/ratescout_kurs · Дзен https://dzen.ru/ratescout · "
              "VK https://vk.com/ratescout · Mastodon https://mastodon.social/@ratescout_ru · "
-             "Blogger https://blogger.ratescout.ru/")
+             "Blogger https://ratescouten.blogspot.com/")
     if now_dt.weekday() == 6:                     # воскресенье — сводка
         rows = _svodka_rows()
         withchg = sorted([r for r in rows if r[3] is not None], key=lambda r: r[2], reverse=True)[:20]
@@ -4574,11 +4689,12 @@ def write_daily_digest_en():
             lines.append("")
         lines.append("🏆 Liquidity (exchangers to USDT):")
         lines += [f"• {CUR[s]['ticker']} — {lq}" for s, _p, lq, _c in liq]
-        lines += ["", f"📊 Full table of all {len(CUR)} currencies → {BASE_URL}/en/svodka/", "", chans, "", "#crypto #rates"]
-        short = (f"🧭 Crypto market summary {now}\n{idx_line}\nFull summary → {BASE_URL}/en/svodka/\n#crypto")[:490]
+        lines += ["", f"📊 Full table of all {len(CUR)} currencies → {EB}/en/svodka/", "", chans, "", "#crypto #rates"]
+        short = (f"🧭 Crypto market summary {now}\n{idx_line}\nFull summary → {EB}/en/svodka/\n#crypto")[:490]
         json.dump({"has_data": True, "caption": "\n".join(lines), "image": img_url,
-                   "url": f"{BASE_URL}/en/svodka/", "buttons": _digest_buttons("/en/svodka/", "en"),
+                   "url": f"{EB}/en/svodka/", "buttons": _digest_buttons("/en/svodka/", "en"),
                    "full_list": fl, "full_list_url": f"{BASE_URL}/daily-all-en.txt",
+                   "coins": _coins_json(),
                    "short": short, "title": f"Crypto market summary · {now}"},
                   open(out, "w", encoding="utf-8"), ensure_ascii=False)
         print("daily-en: сводка готова")
@@ -4599,13 +4715,14 @@ def write_daily_digest_en():
     lines += [f"• {CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers]
     lines += ["", "📉 Top losers:"]
     lines += [f"• {CUR[s]['ticker']} {p:.1f}%" for s, p in losers]
-    lines += ["", f"Full review & charts → {BASE_URL}/en/obzor/sutki/", "", chans, "", "#crypto #rates"]
+    lines += ["", f"Full review & charts → {EB}/en/obzor/sutki/", "", chans, "", "#crypto #rates"]
     short = (f"📊 Crypto 24h {now}\n📈 " + " · ".join(f"{CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers[:3])
              + "\n📉 " + " · ".join(f"{CUR[s]['ticker']} {p:.1f}%" for s, p in losers[:3])
-             + f"\nReview → {BASE_URL}/en/obzor/sutki/\n#crypto")[:490]
+             + f"\nReview → {EB}/en/obzor/sutki/\n#crypto")[:490]
     json.dump({"has_data": True, "caption": "\n".join(lines), "image": img_url,
-               "url": f"{BASE_URL}/en/obzor/sutki/", "buttons": _digest_buttons("/en/obzor/sutki/", "en"),
+               "url": f"{EB}/en/obzor/sutki/", "buttons": _digest_buttons("/en/obzor/sutki/", "en"),
                "full_list": fl, "full_list_url": f"{BASE_URL}/daily-all-en.txt",
+               "coins": _coins_json(),
                "short": short, "title": f"Crypto market · 24h · {now}"},
               open(out, "w", encoding="utf-8"), ensure_ascii=False)
     print("daily-en: дайджест готов")
@@ -7135,6 +7252,8 @@ def main():
     write_covers()          # после copy_assets (он rmtree-ит dist/assets)
     write_daily_digest()    # dist/daily.json + daily-24h.png для Telegram (тоже после copy_assets)
     write_daily_digest_en() # dist/daily-en.json для английского Telegram-канала
+    write_daily_digest_es() # dist/daily-es.json — источник для ES Blogger-блога
+    write_daily_digest_fr() # dist/daily-fr.json — источник для FR Blogger-блога
     write_article_announce() # article-today.json — анонс вышедшей сегодня статьи
     render_dzen_rss()       # ссылается на обложки — после их генерации
     write_catalog_js(catjs)

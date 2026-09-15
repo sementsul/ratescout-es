@@ -1,14 +1,27 @@
 #!/usr/bin/env python3
-"""Автопостинг дневной сводки в Blogger (Google Blogger API v3).
+"""Автопостинг дневного дайджеста в Blogger (Google Blogger API v3) — RU/ES/EN/FR.
 
-Секреты (GitHub Secrets), в коде их нет:
-  BLOGGER_CLIENT_ID, BLOGGER_CLIENT_SECRET, BLOGGER_REFRESH_TOKEN  — OAuth Desktop-приложения (scope blogger)
-  BLOGGER_BLOG_ID  — числовой id блога
-  BLOGGER_POST_ID  — (опц.) числовой id ОДНОГО поста, который обновляем на месте вместо создания новых.
-                     Если пусто — скрипт создаёт пост и печатает его id: положи его в этот секрет,
-                     дальше сводка будет ПЕРЕзаписывать один и тот же пост (один вечный URL).
-Refresh-токен получается один раз (OAuth Playground), дальше CI сам меняет его на access-токен.
-Без секретов — сухой прогон (печатает заголовок/HTML, не публикует).
+Язык выбирается переменной BLOGGER_LANG (ru|es|en|fr, по умолчанию ru — старое поведение).
+Под каждый язык — свой блог и свой вечный пост (PATCH на месте, без плодящихся статей):
+
+  Общие OAuth-секреты (один Google-аккаунт — владелец всех блогов):
+    BLOGGER_CLIENT_ID, BLOGGER_CLIENT_SECRET, BLOGGER_REFRESH_TOKEN
+  На язык XX (XX = RU|ES|EN|FR, для RU годятся и короткие имена без суффикса):
+    BLOGGER_XX_BLOG_ID  — числовой id блога (из Atom-ленты: tag:blogger.com,1999:blog-<ID>)
+    BLOGGER_XX_POST_ID  — (опц.) id вечного поста; пусто на первом запуске → скрипт
+                          создаст пост и напечатает id для этого секрета
+    BLOGGER_XX_TITLE    — (опц.) заголовок вечного поста
+    BLOGGER_XX_SRC      — (опц.) URL daily-JSON-источника
+
+Источники daily-JSON по умолчанию:
+  ru → https://ratescout.ru/daily.json        (основной сайт)
+  es → https://ratescout.oc.com.ar/daily-es.json
+  en → https://ratescout.oc.com.ar/daily-en.json
+  fr → https://ratescout.oc.com.ar/daily-fr.json
+
+Ссылки на валюты ([тикер] → страница /valuta/<слаг>/) берутся из поля "coins"
+daily-JSON и ведут на языковую версию сайта (site+prefix из таблицы LANGS).
+Без секретов — сухой прогон (печатает заголовок и пример таблицы, не публикует).
 """
 import html
 import json
@@ -18,15 +31,56 @@ import sys
 import urllib.parse
 import urllib.request
 
+LANG = (os.environ.get("BLOGGER_LANG") or "ru").lower()
+
+LANGS = {
+    # site — языковая версия сайта для ссылок на валюты; prefix — префикс языка в путях.
+    "ru": {"src": "https://ratescout.ru/daily.json",
+           "title": "Курсы криптовалют сегодня — сводка RateScout",
+           "site": "https://ratescout.ru", "prefix": "",
+           "img_alt": "Крипторынок за сутки",
+           "th": ("Валюта", "Цена, USDT", "Изм. 24ч", "Обменников")},
+    "es": {"src": "https://ratescout.oc.com.ar/daily-es.json",
+           "title": "Criptomonedas hoy — resumen RateScout",
+           "site": "https://ratescout.oc.com.ar", "prefix": "",
+           "img_alt": "Criptomercado en 24h",
+           "th": ("Moneda", "Precio, USDT", "Var. 24h", "Cambistas")},
+    "en": {"src": "https://ratescout.oc.com.ar/daily-en.json",
+           "title": "Crypto rates today — RateScout digest",
+           "site": "https://ratescout.ru", "prefix": "/en",
+           "img_alt": "Crypto market · 24h",
+           "th": ("Currency", "Price, USDT", "24h chg.", "Exchangers")},
+    "fr": {"src": "https://ratescout.oc.com.ar/daily-fr.json",
+           "title": "Taux crypto du jour — résumé RateScout",
+           "site": "https://ratescout.info.gf", "prefix": "",
+           "img_alt": "Marché crypto · 24h",
+           "th": ("Monnaie", "Prix, USDT", "Var. 24h", "Changeurs")},
+}
+if LANG not in LANGS:
+    print(f"неизвестный BLOGGER_LANG={LANG} (ru|es|en|fr)")
+    sys.exit(1)
+CFG = LANGS[LANG]
+SFX = "_" + LANG.upper()
+
+
+def _env(*names):
+    for n in names:
+        v = os.environ.get(n)
+        if v:
+            return v
+    return ""
+
+
 CID = os.environ.get("BLOGGER_CLIENT_ID")
 CSEC = os.environ.get("BLOGGER_CLIENT_SECRET")
 RTOK = os.environ.get("BLOGGER_REFRESH_TOKEN")
-BLOG = os.environ.get("BLOGGER_BLOG_ID")
-PID = os.environ.get("BLOGGER_POST_ID")            # если задан — обновляем этот пост, а не плодим новые
-SRC = os.environ.get("DAILY_JSON_URL", "https://ratescout.ru/daily.json")
-# Стабильный заголовок вечного поста (не меняется по дням → стабильный URL и ранжирование).
-# Можно переопределить секретом/переменной BLOGGER_POST_TITLE.
-STABLE_TITLE = os.environ.get("BLOGGER_POST_TITLE", "Курсы криптовалют сегодня — сводка RateScout")
+# Суффиксные имена приоритетны; короткие (без суффикса) — для RU, как раньше.
+BLOG = _env("BLOGGER" + SFX + "_BLOG_ID", "BLOGGER_BLOG_ID") if LANG != "ru" \
+    else _env("BLOGGER_RU_BLOG_ID", "BLOGGER_BLOG_ID")
+PID = _env("BLOGGER" + SFX + "_POST_ID", "BLOGGER_POST_ID") if LANG != "ru" \
+    else _env("BLOGGER_RU_POST_ID", "BLOGGER_POST_ID")
+SRC = _env("BLOGGER" + SFX + "_SRC", "DAILY_JSON_URL") or CFG["src"]
+STABLE_TITLE = _env("BLOGGER" + SFX + "_TITLE", "BLOGGER_POST_TITLE") or CFG["title"]
 
 
 def access_token():
@@ -43,7 +97,7 @@ def _linkify(text):
 
 
 def _change_color(chg):
-    c = chg.strip()
+    c = (chg or "").strip()
     if c.startswith("+"):
         return "#0a8a0a"   # рост — зелёный
     if c.startswith("-"):
@@ -51,10 +105,51 @@ def _change_color(chg):
     return "#555"          # без изменения — серый
 
 
+def _coin_href(slug):
+    return f"{CFG['site']}{CFG['prefix']}/valuta/{slug}/"
+
+
+def render_coins_table(coins):
+    """Таблица «все валюты» из структурного списка coins (со слагами):
+    тикер — ссылкой на страницу валюты на языке поста. Стили инлайновые."""
+    if not coins:
+        return ""
+    t0, t1, t2, t3 = (html.escape(x) for x in CFG["th"])
+    rows = []
+    for i, c in enumerate(coins):
+        bg = "#ffffff" if i % 2 == 0 else "#f7f7f7"
+        tick = html.escape(c.get("ticker", "?"))
+        href = _coin_href(c["slug"]) if c.get("slug") else ""
+        cell0 = (f'<a href="{href}">{tick}</a>' if href else tick)
+        rows.append(
+            f'<tr style="background:{bg}">'
+            f'<td style="padding:6px 10px;font-weight:600;white-space:nowrap">{cell0}</td>'
+            f'<td style="padding:6px 10px;text-align:right;white-space:nowrap">'
+            f'{html.escape(str(c.get("price", "—")))}</td>'
+            f'<td style="padding:6px 10px;text-align:right;white-space:nowrap;'
+            f'color:{_change_color(str(c.get("chg", "")))}">{html.escape(str(c.get("chg", "—")))}</td>'
+            f'<td style="padding:6px 10px;text-align:right;white-space:nowrap;color:#777">'
+            f'{html.escape(str(c.get("liq", "")))}</td>'
+            f'</tr>')
+    thead = ('<tr style="background:#eeeeee">'
+             f'<th style="padding:8px 10px;text-align:left;color:#222222;border-bottom:2px solid #cccccc">{t0}</th>'
+             f'<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">{t1}</th>'
+             f'<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">{t2}</th>'
+             f'<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">{t3}</th>'
+             '</tr>')
+    return ('<div style="overflow-x:auto">'
+            '<table style="border-collapse:collapse;width:100%;font-size:14px;'
+            'color:#222222;background:#ffffff;border:1px solid #dddddd">'
+            f'<thead>{thead}</thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
 def render_full_list_table(fl):
-    """Нижний блок «все валюты» из строк 'ТИКЕР: цена · изм% · обменников' → HTML-таблица.
-    Стили только инлайновые (Blogger вырезает <style>). Неразобранные строки пропускаем."""
-    heading = "Все валюты — цена USDT · изм. 24ч · обменников"
+    """Старый формат: строки 'ТИКЕР: цена · изм% · обменников' → HTML-таблица (без ссылок).
+    Используется, когда в daily-JSON нет поля coins (обратная совместимость)."""
+    heading = {"ru": "Все валюты — цена USDT · изм. 24ч · обменников",
+               "es": "Todas las monedas — precio USDT · var. 24h · cambistas",
+               "en": "All currencies — price USDT · 24h · exchangers",
+               "fr": "Toutes les monnaies — prix USDT · var. 24h · changeurs"}[LANG]
     rows = []
     for ln in fl.split("\n"):
         s = ln.strip()
@@ -80,11 +175,12 @@ def render_full_list_table(fl):
             f'</tr>')
     if not rows:
         return ""
+    t0, t1, t2, t3 = (html.escape(x) for x in CFG["th"])
     thead = ('<tr style="background:#eeeeee">'
-             '<th style="padding:8px 10px;text-align:left;color:#222222;border-bottom:2px solid #cccccc">Валюта</th>'
-             '<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">Цена, USDT</th>'
-             '<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">Изм. 24ч</th>'
-             '<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">Обменников</th>'
+             f'<th style="padding:8px 10px;text-align:left;color:#222222;border-bottom:2px solid #cccccc">{t0}</th>'
+             f'<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">{t1}</th>'
+             f'<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">{t2}</th>'
+             f'<th style="padding:8px 10px;text-align:right;color:#222222;border-bottom:2px solid #cccccc">{t3}</th>'
              '</tr>')
     return (f'<h3>{html.escape(heading)}</h3>'
             '<div style="overflow-x:auto">'
@@ -95,9 +191,12 @@ def render_full_list_table(fl):
 
 def build_html(d):
     cap = _linkify(html.escape(d.get("caption", "")).replace("\n", "<br>"))
-    img = f'<p><img src="{html.escape(d["image"])}" alt="Крипторынок за сутки" /></p>' if d.get("image") else ""
+    img = (f'<p><img src="{html.escape(d["image"])}" alt="{html.escape(CFG["img_alt"])}" /></p>'
+           if d.get("image") else "")
     parts = [img, f"<p>{cap}</p>"]
-    if d.get("full_list"):
+    if d.get("coins"):
+        parts.append(render_coins_table(d["coins"]))
+    elif d.get("full_list"):
         parts.append(render_full_list_table(d["full_list"]))
     return "".join(parts)
 
@@ -113,8 +212,9 @@ def main():
         print("нет данных за сутки — публикация пропущена")
         return 0
     if not all([CID, CSEC, RTOK, BLOG]):
-        print("Blogger-секреты не заданы — сухой прогон.\n--- заголовок ---")
+        print(f"Blogger-секреты не заданы (lang={LANG}) — сухой прогон.\n--- заголовок ---")
         print(STABLE_TITLE)
+        print(f"--- источник: {SRC} · валют в coins: {len(d.get('coins') or [])} ---")
         return 0
     body = json.dumps({"kind": "blogger#post", "title": STABLE_TITLE,
                        "content": build_html(d)}).encode()
@@ -124,7 +224,7 @@ def main():
         url = f"https://www.googleapis.com/blogger/v3/blogs/{BLOG}/posts/{PID}"
         method, action = "PATCH", "обновлён"
     else:
-        # Первый раз: создаём пост и печатаем его id для секрета BLOGGER_POST_ID
+        # Первый раз: создаём пост и печатаем его id для секрета BLOGGER_<LANG>_POST_ID
         url = f"https://www.googleapis.com/blogger/v3/blogs/{BLOG}/posts/"
         method, action = "POST", "создан"
     req = urllib.request.Request(url, data=body, method=method,
@@ -133,10 +233,10 @@ def main():
     try:
         with urllib.request.urlopen(req, timeout=40) as r:
             res = json.load(r)
-        print(f"пост {action}:", res.get("url"))
+        print(f"[{LANG}] пост {action}:", res.get("url"))
         if not PID:
-            print(f"⚠ ВАЖНО: положи этот id в GitHub-секрет BLOGGER_POST_ID — "
-                  f"дальше пост будет обновляться, а не плодиться.\nBLOGGER_POST_ID = {res.get('id')}")
+            print(f"⚠ ВАЖНО: положи этот id в GitHub-секрет BLOGGER_{LANG.upper()}_POST_ID — "
+                  f"дальше пост будет обновляться, а не плодиться.\nBLOGGER_{LANG.upper()}_POST_ID = {res.get('id')}")
         return 0
     except Exception as e:                        # noqa: BLE001
         print(f"ошибка публикации в Blogger: {e}")
