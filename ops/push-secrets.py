@@ -48,6 +48,12 @@ OPTIONAL = [
      "Service-account JSON для Search Console (можно @путь-к-файлу)"),
     ("GSC_SITE",
      "Property в GSC, напр. https://ratescout.oc.com.ar/"),
+    ("BLOGGER_CLIENT_ID",
+     "Blogger OAuth client_id (та же тройка, что в основном репо)"),
+    ("BLOGGER_CLIENT_SECRET",
+     "Blogger OAuth client_secret"),
+    ("BLOGGER_REFRESH_TOKEN",
+     "Blogger refresh-токен (scope blogger)"),
 ]
 
 

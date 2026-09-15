@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.blogger-tokens.json  # ops/blogger-tokens.py: локальные Blogger OAuth-ключи (не коммитить)
 vk_secrets.txt          # bootstrap кладёт сюда VK_REFRESH_TOKEN/VK_DEVICE_ID (перенёс в Secrets — удали)
 vk_debug.txt            # bootstrap пишет сюда текст ошибки для диагностики (токенов не содержит)
 
