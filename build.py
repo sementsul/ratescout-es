@@ -2623,6 +2623,7 @@ def footer(lang):
                 "a través del programa de afiliados podemos ganar una comisión.")
         links = (f'<a href="{PREF[lang]}/o-servise/">Acerca de</a> · <a href="{PREF[lang]}/aml/">Verificación AML</a> · '
                  f'<a href="{PREF[lang]}/vidzhet/">Widget</a> · <a href="{PREF[lang]}/redakciya/">Redacción</a> · '
+                 f'<a href="https://ratescout-es.blogspot.com/" target="_blank" rel="noopener me">Blog en Blogger</a> · '
                  f'<a href="https://t.me/ratescout_kursen" target="_blank" rel="noopener me">Canal de Telegram</a> · '
                  f'<a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · '
                  f'<a href="{PREF[lang]}/raskrytie/">Aviso legal</a> · '
@@ -2636,7 +2637,7 @@ def footer(lang):
                 "erid: 2VtzqvK5m96")
         links = (f'<a href="{PREF[lang]}/o-servise/">About</a> · <a href="{PREF[lang]}/aml/">AML check</a> · '
                  f'<a href="{PREF[lang]}/earn/">Earn with BestChange</a> · '
-                 f'<a href="{PREF[lang]}/vidzhet/">Site widget</a> · <a href="{PREF[lang]}/redakciya/">Editorial</a> · <a href="https://blogger.ratescout.ru/" target="_blank" rel="noopener me">Blog on Blogger</a> · <a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Telegram channel</a> · <a href="https://ok.ru/group/70000057243663" target="_blank" rel="noopener me">Odnoklassniki</a> · <a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · <a href="{PREF[lang]}/raskrytie/">Disclosure</a> · <a href="{PREF[lang]}/politika/">Privacy policy</a> · <a href="{PREF[lang]}/usloviya/">Terms of Service</a>')
+                 f'<a href="{PREF[lang]}/vidzhet/">Site widget</a> · <a href="{PREF[lang]}/redakciya/">Editorial</a> · <a href="https://ratescouten.blogspot.com/" target="_blank" rel="noopener me">Blog on Blogger</a> · <a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Telegram channel</a> · <a href="https://ok.ru/group/70000057243663" target="_blank" rel="noopener me">Odnoklassniki</a> · <a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · <a href="{PREF[lang]}/raskrytie/">Disclosure</a> · <a href="{PREF[lang]}/politika/">Privacy policy</a> · <a href="{PREF[lang]}/usloviya/">Terms of Service</a>')
         fine = ("18+. Information is for reference only and is not advertising, an offer or financial advice. "
                 f"Rates change. © {S['name']} {S['domain']}.<br>"
                 f"<span class=\"erid\">Site owner: {S.get('owner','')} (self-employed, RU tax ID {S.get('owner_inn','')}).</span>")
@@ -2647,6 +2648,7 @@ def footer(lang):
                 "Publicité. Annonceur : IE Zuborev N.S. erid : 2VtzqvK5m96")
         links = (f'<a href="{PREF[lang]}/o-servise/">À propos</a> · <a href="{PREF[lang]}/aml/">Vérification AML</a> · '
                  f'<a href="{PREF[lang]}/vidzhet/">Widget</a> · <a href="{PREF[lang]}/redakciya/">Rédaction</a> · '
+                 f'<a href="https://ratescout-fr.blogspot.com/" target="_blank" rel="noopener me">Blog sur Blogger</a> · '
                  f'<a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">Canal Telegram</a> · '
                  f'<a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">Mastodon</a> · '
                  f'<a href="{PREF[lang]}/raskrytie/">Mentions légales</a> · '
@@ -4351,10 +4353,17 @@ def make_daily_image(out_path, date, gainers, losers, lang="ru"):
 
 def make_weekly_image(out_path, date, stbl, liq, lang="ru"):
     """Картинка для воскресной «Сводки»: стейблкоины (откл. от $1) + ликвидность. Без emoji (DejaVu их не рисует)."""
-    lab = (("[⇄] Сводка крипторынка", "Стейблкоины (откл. от $1)", "Ликвидность (обменников к USDT)",
-            "Полная сводка: ratescout.ru/svodka") if lang == "ru" else
-           ("[⇄] Crypto market summary", "Stablecoins (peg to $1)", "Liquidity (exchangers to USDT)",
-            "Full summary: ratescout.ru/en/svodka"))
+    _lab = {
+        "ru": ("[⇄] Сводка крипторынка", "Стейблкоины (откл. от $1)", "Ликвидность (обменников к USDT)",
+               "Полная сводка: ratescout.ru/svodka", "ratescout.ru"),
+        "es": ("[⇄] Resumen del criptomercado", "Stablecoins (desvío de $1)", "Liquidez (cambistas a USDT)",
+               "Resumen completo: ratescout.oc.com.ar/svodka", "ratescout.oc.com.ar"),
+        "en": ("[⇄] Crypto market summary", "Stablecoins (peg to $1)", "Liquidity (exchangers to USDT)",
+               "Full summary: ratescout.ru/en/svodka", "ratescout.ru"),
+        "fr": ("[⇄] Résumé du marché crypto", "Stablecoins (écart à $1)", "Liquidité (changeurs vers USDT)",
+               "Résumé complet : ratescout.info.gf/svodka", "ratescout.info.gf"),
+    }
+    lab = _lab.get(lang, _lab["en"])
     W, H = 1080, 1080
     img = Image.new("RGB", (W, H), (11, 11, 11))
     dr = ImageDraw.Draw(img)
@@ -4364,7 +4373,7 @@ def make_weekly_image(out_path, date, stbl, liq, lang="ru"):
     fr = ImageFont.truetype(FONT_BOLD, 34)
     ff = ImageFont.truetype(FONT_REG, 28)
     dr.text((56, 44), lab[0], font=fb, fill=(85, 255, 255))
-    dr.text((56, 108), f"{date} · ratescout.ru", font=ff, fill=(150, 150, 150))
+    dr.text((56, 108), f"{date} · {lab[4]}", font=ff, fill=(150, 150, 150))
     y = 200
     dr.text((56, y), lab[1], font=fh, fill=(120, 200, 255))
     y += 66
@@ -4561,14 +4570,108 @@ def write_daily_digest():
     print(f"daily: дайджест готов{' с картинкой' if img_url else ' (без картинки)'}")
 
 
+def _digest_weekly_lang(out, txt_path, lang, site, pref, fl, coins):
+    """Воскресная «Сводка» на языке lang (настроение + стейблкоины + ликвидность) —
+    зеркало RU-_digest_weekly для ES/FR Blogger-постов."""
+    rows = _svodka_rows()
+    withchg = sorted([r for r in rows if r[3] is not None], key=lambda r: r[2], reverse=True)[:20]
+    best = {}
+    for r in rows:
+        tk = CUR[r[0]]["ticker"]
+        if tk in STABLE_T and tk != "USDT" and r[1] is not None and (tk not in best or r[2] > best[tk][2]):
+            best[tk] = r        # USDT — база (=1), не берём
+    stbl = sorted(best.values(), key=lambda r: abs(r[1] - 1), reverse=True)[:5]
+    liq = sorted(rows, key=lambda r: r[2], reverse=True)[:5]
+    if len(withchg) < 5 and not stbl:
+        json.dump({"has_data": False}, open(out, "w"))
+        print(f"daily-{lang}: мало данных — сводка пропущена")
+        return
+    now = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+    if withchg:
+        avg = sum(r[3] for r in withchg) / len(withchg)
+        up = sum(1 for r in withchg if r[3] > 0)
+        dn = sum(1 for r in withchg if r[3] < 0)
+        if lang == "fr":
+            mood = "🟢 en hausse" if avg > 0.3 else "🔴 en baisse" if avg < -0.3 else "⚪ mixte"
+            idx_line = (f"Humeur : {mood} (mouvement moyen du top-{len(withchg)} : "
+                        f"{'+' if avg >= 0 else ''}{avg:.2f} %, ↑{up}/↓{dn})")
+        else:
+            mood = "🟢 en positivo" if avg > 0.3 else "🔴 en negativo" if avg < -0.3 else "⚪ mixto"
+            idx_line = (f"Ánimo: {mood} (movimiento medio del top-{len(withchg)}: "
+                        f"{'+' if avg >= 0 else ''}{avg:.2f} %, ↑{up}/↓{dn})")
+    else:
+        idx_line = "Humeur : données en cours de collecte" if lang == "fr" else "Ánimo: acumulando datos"
+    allc = [r for r in rows if r[3] is not None]
+    au = sum(1 for r in allc if r[3] > 0)
+    ad = sum(1 for r in allc if r[3] < 0)
+    if lang == "fr":
+        agg = (f"📋 Monnaies suivies : {len(CUR)}. Sur 24h en crypto ({len(allc)}) : "
+               f"{au} en hausse, {ad} en baisse." if allc else f"📋 Monnaies suivies : {len(CUR)}.")
+    else:
+        agg = (f"📋 Monedas en base: {len(CUR)}. En 24h en cripto ({len(allc)}): "
+               f"subieron {au}, bajaron {ad}." if allc else f"📋 Monedas en base: {len(CUR)}.")
+    img_url = ""
+    if COVERS_OK:
+        make_weekly_image(os.path.join(DIST, "assets", f"daily-week-{lang}.png"),
+                          now, stbl, liq, lang=lang)
+        img_url = f"{BASE_URL}/assets/daily-week-{lang}.png"
+    if lang == "fr":
+        lines = [f"🧭 Résumé du marché crypto · {now}", "", agg, idx_line, ""]
+    else:
+        lines = [f"🧭 Resumen del criptomercado · {now}", "", agg, idx_line, ""]
+    if stbl:
+        lines.append("💵 Stablecoins (écart à $1) :" if lang == "fr"
+                     else "💵 Stablecoins (desvío de $1):")
+        lines += [f"• {CUR[s]['ticker']} {p:.4f} ({'+' if (p - 1) >= 0 else ''}{(p - 1) * 100:.2f}%)"
+                  for s, p, _l, _c in stbl]
+        lines.append("")
+    lines.append("🏆 Liquidité (changeurs vers USDT) :" if lang == "fr"
+                 else "🏆 Liquidez (cambistas a USDT):")
+    lines += [f"• {CUR[s]['ticker']} — {lq}" for s, _p, lq, _c in liq]
+    lines += ["", f"📊 {'Résumé complet' if lang == 'fr' else 'Resumen completo'} "
+                  f"({'toutes les monnaies' if lang == 'fr' else 'todas las monedas'}) → {site}{pref}/svodka/",
+              "", _digest_channels(lang), "",
+              "#crypto #taux #résumé" if lang == "fr" else "#cripto #tasas #resumen"]
+    short = ((f"🧭 Résumé crypto {now}\n{idx_line}\nRésumé → {site}{pref}/svodka/\n#crypto")
+             if lang == "fr" else
+             (f"🧭 Resumen cripto {now}\n{idx_line}\nResumen → {site}{pref}/svodka/\n#cripto"))[:490]
+    json.dump({"has_data": True, "caption": "\n".join(lines), "image": img_url,
+               "url": f"{site}{pref}/svodka/",
+               "full_list": fl, "full_list_url": f"{BASE_URL}/{os.path.basename(txt_path)}",
+               "coins": coins,
+               "short": short,
+               "title": (f"Résumé du marché crypto · {now}" if lang == "fr"
+                         else f"Resumen del criptomercado · {now}")},
+              open(out, "w", encoding="utf-8"), ensure_ascii=False)
+    print(f"daily-{lang}: сводка готова{' с картинкой' if img_url else ' (без картинки)'}")
+
+
+def _digest_channels(lang):
+    """Строка «Наши каналы» как в RU-версии, Blogger-URL — под язык поста."""
+    blog = {"es": "https://ratescout-es.blogspot.com/",
+            "en": "https://ratescouten.blogspot.com/",
+            "fr": "https://ratescout-fr.blogspot.com/"}.get(lang, "https://blogger.ratescout.ru/")
+    lead = {"es": "📢 Nuestros canales:", "en": "📢 Our channels:",
+            "fr": "📢 Nos canaux :"} .get(lang, "📢 Наши каналы:")
+    return (f"{lead} Telegram https://t.me/ratescout_kurs · Дзен https://dzen.ru/ratescout · "
+            f"ВК https://vk.com/ratescout · Mastodon https://mastodon.social/@ratescout_ru · "
+            f"Blogger {blog}")
+
+
 def _digest_movers_json(out, txt_path, lang, site, pref, review_path, coin_limit=400):
-    """Дневной дайджест-движений на языке lang → out (+txt-список): источник для Blogger-поста
-    на этом языке. site — базовый домен языковой версии сайта, pref — префикс языка ('' или '/en')."""
+    """Дайджест на языке lang → out (+txt-список): источник для Blogger-поста.
+    site — базовый домен языковой версии сайта, pref — префикс языка ('' или '/en').
+    Будни — топ-движения, воскресенье — «Сводка», как в RU-версии."""
+    now_dt = datetime.now(timezone.utc)
+    fl = full_list_text(lang)
+    open(txt_path, "w", encoding="utf-8").write(fl)
+    coins = _coins_json(coin_limit)
+    if now_dt.weekday() == 6:            # воскресенье — «Сводка» вместо топ-движений
+        _digest_weekly_lang(out, txt_path, lang, site, pref, fl, coins)
+        return
     movers = _daily_movers()
     gainers = [m for m in movers if m[1] > 0][:5]
     losers = sorted([m for m in movers if m[1] < 0], key=lambda x: x[1])[:5]
-    fl = full_list_text(lang)
-    open(txt_path, "w", encoding="utf-8").write(fl)
     if len(movers) < 5 or not (gainers or losers):
         json.dump({"has_data": False}, open(out, "w"))
         print(f"daily-{lang}: данных мало — дайджест пропущен")
@@ -4585,7 +4688,7 @@ def _digest_movers_json(out, txt_path, lang, site, pref, review_path, coin_limit
         lines += ["", "📉 Top bajadas:"]
         lines += [f"• {CUR[s]['ticker']} {p:.1f}%" for s, p in losers]
         lines += ["", f"📊 Resumen completo y gráficos → {site}{pref}{review_path}", "",
-                  "📢 Nuestros canales: Blogger https://ratescout-es.blogspot.com/", "",
+                  _digest_channels("es"), "",
                   "#cripto #tasas #resumen"]
         short = (f"📊 Cripto 24h {now}\n📈 "
                  + " · ".join(f"{CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers[:3])
@@ -4598,7 +4701,7 @@ def _digest_movers_json(out, txt_path, lang, site, pref, review_path, coin_limit
         lines += ["", "📉 Top baisses :"]
         lines += [f"• {CUR[s]['ticker']} {p:.1f} %" for s, p in losers]
         lines += ["", f"📊 Résumé complet et graphiques → {site}{pref}{review_path}", "",
-                  "📢 Nos canaux : Blogger https://ratescout-fr.blogspot.com/", "",
+                  _digest_channels("fr"), "",
                   "#crypto #taux #résumé"]
         short = (f"📊 Crypto 24h {now}\n📈 "
                  + " · ".join(f"{CUR[s]['ticker']} +{p:.1f} %" for s, p in gainers[:3])
@@ -4611,7 +4714,7 @@ def _digest_movers_json(out, txt_path, lang, site, pref, review_path, coin_limit
         lines += ["", "📉 Top losers:"]
         lines += [f"• {CUR[s]['ticker']} {p:.1f}%" for s, p in losers]
         lines += ["", f"Full review & charts → {site}{pref}{review_path}", "",
-                  "📢 Our channels: Blogger https://ratescouten.blogspot.com/", "",
+                  _digest_channels("en"), "",
                   "#crypto #rates"]
         short = (f"📊 Crypto 24h {now}\n📈 "
                  + " · ".join(f"{CUR[s]['ticker']} +{p:.1f}%" for s, p in gainers[:3])
@@ -5693,7 +5796,9 @@ def compliance_pages(lang):
 <h2>Descargo</h2><p>Información de referencia, no es consejo financiero, de inversión ni legal.
    Las tasas cambian. La decisión de intercambiar es tuya y bajo tu riesgo. 18+.</p>
 <h2>Contacto</h2>
-<p>Contacto: {S.get('owner_email','')}.</p>"""
+<p>Contacto: {S.get('owner_email','')}.</p>
+<h2>Blog oficial</h2>
+<p>Blog oficial del servicio: <a href="https://ratescout-es.blogspot.com/" target="_blank" rel="noopener me">ratescout-es.blogspot.com</a>.</p>"""
                     + donations_block(lang),
                     "Aviso legal")
         render_page(lang, "politika", "Política de privacidad",
@@ -5778,7 +5883,7 @@ Actualizado en esta página.</p>\n<h2>Datos personales — Ley 25.326 (Argentina
 <p><b>{S.get('owner','')}</b> (self-employed, RU tax ID {S.get('owner_inn','')}). The owner is not an exchange
    office and does not process transactions. Contact: {S.get('owner_email','')}.</p>
 <h2>Official resources</h2>
-<p>Official service blog: <a href="https://blogger.ratescout.ru/" target="_blank" rel="noopener me">blogger.ratescout.ru</a>.
+<p>Official service blog: <a href="https://ratescouten.blogspot.com/" target="_blank" rel="noopener me">ratescouten.blogspot.com</a>.
    Telegram channel: <a href="https://t.me/ratescout_kurs" target="_blank" rel="noopener me">t.me/ratescout_kurs</a>,
    VK: <a href="https://vk.com/ratescout" target="_blank" rel="noopener me">vk.com/ratescout</a>,
    Mastodon: <a href="https://mastodon.social/@ratescout_ru" target="_blank" rel="noopener me">@ratescout_ru</a>.</p>"""
