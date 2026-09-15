@@ -34,4 +34,4 @@ jobs:
           git add .github/heartbeat.txt
           # [skip ci] — не запускать deploy из-за heartbeat
           git commit -m "chore: keepalive heartbeat [skip ci]" || { echo "нет изменений"; exit 0; }
-          git push "https://x-access-token:${PAT}@github.com/sementsul/ratescout.git" HEAD:main
+          git push "https://x-access-token:${PAT}@github.com/sementsul/ratescout-es.git" HEAD:main
