@@ -41,11 +41,28 @@ jobs:
           BLOGGER_EN_POST_ID: ${{ secrets.BLOGGER_EN_POST_ID }}
           BLOGGER_FR_BLOG_ID: ${{ secrets.BLOGGER_FR_BLOG_ID }}
           BLOGGER_FR_POST_ID: ${{ secrets.BLOGGER_FR_POST_ID }}
+        # Ретрай: Blogger API иногда отвечает 503 — повторяем до 3 раз с паузой,
+        # чтобы разовый сбой Google не оставлял блоги без свежей сводки.
         run: |
+          post_lang() {
+            for i in 1 2 3; do
+              if BLOGGER_LANG="$1" python3 blogger_daily.py; then
+                return 0
+              fi
+              echo "⚠ $1: попытка $i не удалась, жду 120с..."
+              sleep 120
+            done
+            return 1
+          }
+          FAILED=""
           for lang in es en fr; do
             echo "=== $lang ==="
-            BLOGGER_LANG=$lang python3 blogger_daily.py || echo "⚠ $lang не опубликован — см. лог выше"
+            post_lang "$lang" || FAILED="$FAILED $lang"
           done
+          if [ -n "$FAILED" ]; then
+            echo "❌ не опубликовано:$FAILED"
+            exit 1
+          fi
       - name: Commit blogger_posted.json
         if: always()
         run: |
