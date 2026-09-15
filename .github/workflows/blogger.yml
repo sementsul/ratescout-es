@@ -1,12 +1,13 @@
 name: Blogger daily digest
 
-# Раз в день обновляет вечный пост-сводку в трёх Blogger-блогах (ES/EN/FR, Google Blogger API v3).
+# Раз в день обновляет вечные посты-сводки в трёх Blogger-блогах (ES/EN/FR, Google Blogger API v3).
+# Шаги идут последовательно (не матрица), чтобы коммит blogger_posted.json не гонялся.
 # Данные — daily-*.json с боевого сайта (генерит build.py, с полем coins для ссылок на валюты).
 # Общие OAuth-секреты (один Google-аккаунт — владелец всех блогов):
 #   BLOGGER_CLIENT_ID, BLOGGER_CLIENT_SECRET, BLOGGER_REFRESH_TOKEN
-# На язык: BLOGGER_ES_BLOG_ID / BLOGGER_EN_BLOG_ID / BLOGGER_FR_BLOG_ID (числовые id блогов)
-#          + BLOGGER_ES_POST_ID / BLOGGER_EN_POST_ID / BLOGGER_FR_POST_ID (id вечных постов;
-#          пусто на первом запуске → скрипт создаст пост и напечатает id в лог для этого секрета).
+# На язык: BLOGGER_ES_BLOG_ID / BLOGGER_EN_BLOG_ID / BLOGGER_FR_BLOG_ID (числовые id блогов).
+# ID вечных постов скрипт сам сохраняет в blogger_posted.json (коммитится ниже);
+# запасной вариант — секреты BLOGGER_ES_POST_ID / BLOGGER_EN_POST_ID / BLOGGER_FR_POST_ID.
 # Без секретов — сухой прогон.
 
 on:
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write        # для коммита blogger_posted.json (id вечных постов) обратно в репозиторий
 
 concurrency:
   group: blogger-daily
@@ -24,18 +25,13 @@ concurrency:
 jobs:
   post:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        lang: [es, en, fr]
-      fail-fast: false
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Post daily digest to Blogger (${{ matrix.lang }})
+      - name: Post daily digest to Blogger (es/en/fr)
         env:
-          BLOGGER_LANG: ${{ matrix.lang }}
           BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
           BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
           BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
@@ -45,4 +41,18 @@ jobs:
           BLOGGER_EN_POST_ID: ${{ secrets.BLOGGER_EN_POST_ID }}
           BLOGGER_FR_BLOG_ID: ${{ secrets.BLOGGER_FR_BLOG_ID }}
           BLOGGER_FR_POST_ID: ${{ secrets.BLOGGER_FR_POST_ID }}
-        run: python3 blogger_daily.py
+        run: |
+          for lang in es en fr; do
+            echo "=== $lang ==="
+            BLOGGER_LANG=$lang python3 blogger_daily.py || echo "⚠ $lang не опубликован — см. лог выше"
+          done
+      - name: Commit blogger_posted.json
+        if: always()
+        run: |
+          if [ -f blogger_posted.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add blogger_posted.json
+            git diff --staged --quiet || git commit -m "chore(blogger): обновить id вечных постов [skip ci]"
+            git push
+          fi

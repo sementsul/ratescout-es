@@ -77,8 +77,32 @@ RTOK = os.environ.get("BLOGGER_REFRESH_TOKEN")
 # Суффиксные имена приоритетны; короткие (без суффикса) — для RU, как раньше.
 BLOG = _env("BLOGGER" + SFX + "_BLOG_ID", "BLOGGER_BLOG_ID") if LANG != "ru" \
     else _env("BLOGGER_RU_BLOG_ID", "BLOGGER_BLOG_ID")
+# ID вечного поста: секрет приоритетен; иначе — файл blogger_posted.json в корне репо
+# (скрипт сам дописывает туда id после первого создания, workflow коммитит файл обратно).
+POSTED_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blogger_posted.json")
+
+
+def _posted_id():
+    try:
+        return json.load(open(POSTED_FILE, encoding="utf-8")).get(LANG, "")
+    except (OSError, ValueError):
+        return ""
+
+
+def _save_posted_id(pid):
+    try:
+        cur = json.load(open(POSTED_FILE, encoding="utf-8"))
+    except (OSError, ValueError):
+        cur = {}
+    cur[LANG] = pid
+    json.dump(cur, open(POSTED_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print(f"[{LANG}] id сохранён в blogger_posted.json (workflow закоммитит файл)")
+
+
 PID = _env("BLOGGER" + SFX + "_POST_ID", "BLOGGER_POST_ID") if LANG != "ru" \
     else _env("BLOGGER_RU_POST_ID", "BLOGGER_POST_ID")
+if not PID:
+    PID = _posted_id()
 SRC = _env("BLOGGER" + SFX + "_SRC", "DAILY_JSON_URL") or CFG["src"]
 STABLE_TITLE = _env("BLOGGER" + SFX + "_TITLE", "BLOGGER_POST_TITLE") or CFG["title"]
 
@@ -235,8 +259,9 @@ def main():
             res = json.load(r)
         print(f"[{LANG}] пост {action}:", res.get("url"))
         if not PID:
-            print(f"⚠ ВАЖНО: положи этот id в GitHub-секрет BLOGGER_{LANG.upper()}_POST_ID — "
-                  f"дальше пост будет обновляться, а не плодиться.\nBLOGGER_{LANG.upper()}_POST_ID = {res.get('id')}")
+            _save_posted_id(res.get("id"))
+            print(f"⚠ Запасной вариант: положи этот id в GitHub-секрет BLOGGER_{LANG.upper()}_POST_ID — "
+                  f"тогда файл не нужен.\nBLOGGER_{LANG.upper()}_POST_ID = {res.get('id')}")
         return 0
     except Exception as e:                        # noqa: BLE001
         print(f"ошибка публикации в Blogger: {e}")
