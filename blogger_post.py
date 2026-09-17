@@ -131,6 +131,87 @@ def find_post_by_title(blog, token, title):
     return url
 
 
+def build_post_html(lang, md_body, read_more=None, read_more_text=None, extra_html=""):
+    """Собрать HTML поста (общий для create и живого PATCH)."""
+    body_html = md_to_html(md_body, lang)
+    if extra_html:
+        body_html += extra_html
+    if read_more:
+        more = read_more_text or READ_MORE.get(lang, READ_MORE["es"])
+        body_html += f"<p><b><a href='{read_more}'>{more} →</a></b></p>"
+    return body_html
+
+
+POSTED_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blogger_posted.json")
+
+
+def live_id(lang):
+    """ID живого поста: секрет BLOGGER_<LANG>_LIVE_ID приоритетен, иначе blogger_posted.json."""
+    env = os.environ.get(f"BLOGGER_{lang.upper()}_LIVE_ID", "")
+    if env:
+        return env
+    try:
+        return json.load(open(POSTED_FILE, encoding="utf-8")).get(f"live_{lang}", "")
+    except (OSError, ValueError):
+        return ""
+
+
+def save_live_id(lang, pid):
+    try:
+        cur = json.load(open(POSTED_FILE, encoding="utf-8"))
+    except (OSError, ValueError):
+        cur = {}
+    cur[f"live_{lang}"] = pid
+    json.dump(cur, open(POSTED_FILE, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print(f"[{lang}] live-id сохранён в blogger_posted.json (workflow закоммитит)")
+
+
+def patch_post(blog, token, post_id, title, html, labels=None):
+    """Обновить пост на месте (живой evergreen — URL, возраст и комментарии копятся)."""
+    body = json.dumps({"title": title, "content": html,
+                       "labels": labels or ["RateScout"]}).encode()
+    req = urllib.request.Request(
+        f"https://www.googleapis.com/blogger/v3/blogs/{blog}/posts/{post_id}",
+        data=body, method="PATCH",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=40) as r:
+        res = json.load(r)
+    print(f"пост обновлён: {res.get('url')}")
+    return res.get("url", "")
+
+
+LIVE_TITLE = {
+    "ru": "Рынок сегодня — сводка RateScout",
+    "es": "Mercado hoy — resumen RateScout",
+    "en": "Market today — RateScout brief",
+    "fr": "Marché du jour — résumé RateScout",
+}
+
+
+def upsert_live(lang, md_body, extra_html="", read_more=None, read_more_text=None, dry=False):
+    """Создать живой пост при первом запуске, дальше — PATCH. Возвращает URL."""
+    blog = BLOG_IDS.get(lang, "")
+    html = build_post_html(lang, md_body, read_more, read_more_text, extra_html)
+    if dry or not all([CID, CSEC, RTOK, blog]):
+        print(f"[dry-run] live-{lang} title={LIVE_TITLE.get(lang)}")
+        return "[dry-run]"
+    token = access_token()
+    pid = live_id(lang)
+    if pid:
+        return patch_post(blog, token, pid, LIVE_TITLE[lang], html, labels=["RateScout", "live"])
+    payload = json.dumps({"kind": "blogger#post", "title": LIVE_TITLE[lang],
+                          "content": html, "labels": ["RateScout", "live"]}).encode()
+    req = urllib.request.Request(f"https://www.googleapis.com/blogger/v3/blogs/{blog}/posts/",
+                                 data=payload, method="POST",
+                                 headers={"Authorization": f"Bearer {token}",
+                                          "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=40) as r:
+        res = json.load(r)
+    save_live_id(lang, res.get("id", ""))
+    print(f"[live-{lang}] пост создан: {res.get('url')}")
+    return res.get("url", "")
+
+
 def update_post_link(blog, token, post_id, new_href, new_text):
     """Заменить финальную ссылку-CTA в посте (починка старых Blogger-only обзоров)."""
     get = urllib.request.Request(
@@ -169,13 +250,7 @@ def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more
     site = SITE_URL.get(lang, SITE_URL["es"])
     if read_more is None and slug:
         read_more = f"{site}/blog/{slug}/"
-    body_html = md_to_html(md_body, lang)
-    if extra_html:
-        body_html += extra_html
-    if read_more:
-        more = read_more_text or READ_MORE.get(lang, READ_MORE["es"])
-        body_html += f"<p><b><a href='{read_more}'>{more} →</a></b></p>"
-    content = body_html
+    content = build_post_html(lang, md_body, read_more, read_more_text, extra_html)
     if dry or not all([CID, CSEC, RTOK, blog]):
         print(f"[dry-run] blog={lang} title={title}" + (f"\n  → {read_more}" if read_more else ""))
         return "[dry-run]"

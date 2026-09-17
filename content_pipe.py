@@ -457,8 +457,16 @@ def cmd_market(args):
                               read_more_text=read_more_text if not args.site else None,
                               extra_html=chart)
             log({"action": f"market-{args.which}", "lang": lang, "slug": slug, "blogger": url})
+            # живой evergreen: тот же текст — в один URL, PATCHем каждый день (только daily)
+            if days == 1 and not args.site:
+                from blogger_post import upsert_live
+                live_url = upsert_live(lang, body, extra_html=chart,
+                                       read_more=read_more, read_more_text=read_more_text)
+                log({"action": "market-live", "lang": lang, "blogger": live_url})
         else:
+            from blogger_post import upsert_live
             create_post(lang, title, body, "", dry=True)
+            upsert_live(lang, body, dry=True)
             print(f"[dry-run] {lang}: черновик OK, повтори с --yes для постинга")
         if i < len(langs) - 1:
             _t.sleep(15)
