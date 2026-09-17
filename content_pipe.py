@@ -361,12 +361,16 @@ def cmd_market(args):
                 os.makedirs(dest, exist_ok=True)
                 open(os.path.join(dest, f"{slug}.md"), "w", encoding="utf-8").write(out + "\n")
             read_more = None  # ссылка соберётся из slug в create_post
+            read_more_text = None
         else:
-            from blogger_post import SITE_URL
-            read_more = SITE_URL.get(lang, SITE_URL["es"]) + "/" if args.yes else None
+            # Blogger-only: честная ссылка на живую сводку (продолжения-статьи на сайте нет)
+            from blogger_post import FULL_TABLE, svodka_url
+            read_more = svodka_url(lang)
+            read_more_text = FULL_TABLE.get(lang, FULL_TABLE["es"])
         if args.yes:
             url = create_post(lang, title, body, slug if args.site else "",
-                              labels=["RateScout", period], dry=False, read_more=read_more)
+                              labels=["RateScout", period], dry=False, read_more=read_more,
+                              read_more_text=read_more_text if not args.site else None)
             log({"action": f"market-{args.which}", "lang": lang, "slug": slug, "blogger": url})
         else:
             create_post(lang, title, body, "", dry=True)
@@ -374,6 +378,30 @@ def cmd_market(args):
         if i < len(langs) - 1:
             _t.sleep(15)
     return rc_all
+
+
+def cmd_fixup_brief(args):
+    """Починить ссылку в уже опубликованном обзоре: 'Читать полностью' → 'Полная сводка → /svodka/'."""
+    from blogger_post import (BLOG_IDS, CID, CSEC, RTOK, FULL_TABLE,
+                              access_token, find_post, svodka_url, update_post_link)
+    if not all([CID, CSEC, RTOK]):
+        print("нет Blogger-секретов — сухой прогон")
+        return 0
+    today = date.today().isoformat()
+    base = {"es": "mercado", "en": "market", "fr": "marche", "ru": "rynok"}
+    titles = {"es": f"Mercado en 24 horas: {today}", "en": f"Market in 24h: {today}",
+              "fr": f"Marché en 24h : {today}", "ru": f"Рынок за сутки: {today}"}
+    token = access_token()
+    rc = 0
+    for lang in [l.strip() for l in args.langs.split(",") if l.strip() in base]:
+        blog = BLOG_IDS.get(lang, "")
+        url, pid, _ = find_post(blog, token, titles[lang])
+        if not pid:
+            print(f"{lang}: пост '{titles[lang]}' не найден — пропускаю")
+            continue
+        update_post_link(blog, token, pid, svodka_url(lang), FULL_TABLE.get(lang, FULL_TABLE["es"]))
+        log({"action": "fixup-brief", "lang": lang, "blogger": url})
+    return rc
 
 
 def main():
@@ -390,6 +418,8 @@ def main():
     p.add_argument("--langs", default="es")
     p.add_argument("--src-lang", default="ru")
     p.add_argument("--yes", action="store_true")
+    f = sub.add_parser("fixup-brief", help="починить ссылку в опубликованном обзоре")
+    f.add_argument("--langs", default="ru")
     for w in ("market-daily", "market-weekly"):
         m = sub.add_parser(w, help="ИИ-обзор рынка в 4 блога")
         m.add_argument("--langs", default="es,en,fr,ru")
@@ -405,6 +435,8 @@ def main():
         return cmd_selfcheck(a)
     if a.cmd == "publish":
         return cmd_publish(a)
+    if a.cmd == "fixup-brief":
+        return cmd_fixup_brief(a)
     if a.cmd in ("market-daily", "market-weekly"):
         a.which = "daily" if a.cmd == "market-daily" else "weekly"
         return cmd_market(a)

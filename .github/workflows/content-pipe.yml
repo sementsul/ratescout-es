@@ -16,14 +16,13 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Задача (evergreen|daily|weekly)"
+        description: "Задача (evergreen|daily|weekly|fixup)"
         required: false
         default: "evergreen"
       langs:
         description: "Языки через запятую (es,en,fr,ru)"
         required: false
         default: "es,en,fr,ru"
-
 permissions:
   contents: write        # коммит articles/, topics.json, content_log.json
 
@@ -73,6 +72,8 @@ jobs:
             done
           elif [ "$TASK" = "daily" ]; then
             python3 content_pipe.py market-daily --langs "$LANGS" --yes || echo "daily: ворота (см. лог)"
+          elif [ "$TASK" = "fixup" ]; then
+            python3 content_pipe.py fixup-brief --langs "$LANGS" || echo "fixup: нечего чинить (см. лог)"
           else
             python3 content_pipe.py market-weekly --langs "$LANGS" --yes || echo "weekly: ворота (см. лог)"
           fi

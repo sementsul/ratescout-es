@@ -39,6 +39,20 @@ READ_MORE = {
     "fr": "Lire l'article complet",
 }
 
+# Честная ссылка для Blogger-only обзоров (продолжения на сайте нет —
+# ведём на живую сводку, а не обещаем статью).
+FULL_TABLE = {
+    "ru": "Полная сводка курсов",
+    "es": "Resumen completo del mercado",
+    "en": "Full market overview",
+    "fr": "Résumé complet du marché",
+}
+
+
+def svodka_url(lang):
+    site = SITE_URL.get(lang, SITE_URL["es"])
+    return f"{site}/svodka/"
+
 
 def access_token():
     data = urllib.parse.urlencode({"client_id": CID, "client_secret": CSEC,
@@ -95,9 +109,10 @@ def md_to_html(md, lang="es"):
     return "".join(out)
 
 
-def find_post_by_title(blog, token, title):
-    """URL существующего поста с ТОЧНО таким заголовком (защита от дублей при ретраях)."""
-    q = urllib.parse.urlencode({"q": title, "maxResults": 5, "fields": "items(title,url)"})
+def find_post(blog, token, title):
+    """(url, id) существующего поста с ТОЧНО таким заголовком ('' если нет)."""
+    q = urllib.parse.urlencode({"q": title, "maxResults": 5,
+                                "fields": "items(id,title,url,content)"})
     req = urllib.request.Request(
         f"https://www.googleapis.com/blogger/v3/blogs/{blog}/posts?{q}",
         headers={"Authorization": f"Bearer {token}"})
@@ -105,17 +120,49 @@ def find_post_by_title(blog, token, title):
         with urllib.request.urlopen(req, timeout=30) as r:
             for it in json.load(r).get("items", []):
                 if it.get("title", "").strip() == title.strip():
-                    return it.get("url", "")
+                    return it.get("url", ""), it.get("id", ""), it.get("content", "")
     except Exception:  # noqa: BLE001 — поиск необязателен, идём создавать
         pass
-    return ""
+    return "", "", ""
 
 
-def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more=None):
+def find_post_by_title(blog, token, title):
+    url, _, _ = find_post(blog, token, title)
+    return url
+
+
+def update_post_link(blog, token, post_id, new_href, new_text):
+    """Заменить финальную ссылку-CTA в посте (починка старых Blogger-only обзоров)."""
+    get = urllib.request.Request(
+        f"https://www.googleapis.com/blogger/v3/blogs/{blog}/posts/{post_id}"
+        "?fields=title,content",
+        headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(get, timeout=30) as r:
+        post = json.load(r)
+    content = post.get("content", "")
+    new_content, n = re.subn(r"<p><b><a href='[^']*'>(?:.*?)→</a></b></p>$",
+                             f"<p><b><a href='{new_href}'>{new_text} →</a></b></p>",
+                             content.strip(), count=1)
+    if not n:
+        # запасной вариант: дописать ссылку в конец
+        new_content = content + f"<p><b><a href='{new_href}'>{new_text} →</a></b></p>"
+    body = json.dumps({"content": new_content}).encode()
+    req = urllib.request.Request(
+        f"https://www.googleapis.com/blogger/v3/blogs/{blog}/posts/{post_id}",
+        data=body, method="PATCH",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        res = json.load(r)
+    print(f"пост обновлён: {res.get('url')}")
+    return res.get("url", "")
+
+
+def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more=None,
+                read_more_text=None):
     """Создать новый пост. Возвращает URL поста (или '[dry-run]' без секретов).
 
-    read_more: URL ссылки «Читать полностью →» (по умолчанию — корень сайта языка);
-    None — без ссылки (для Blogger-only обзоров без страницы на сайте).
+    read_more: URL финальной ссылки (по умолчанию из slug; None + пустой slug — без ссылки).
+    read_more_text: текст ссылки (по умолчанию READ_MORE[lang]; для обзоров — FULL_TABLE[lang]).
     """
     blog = BLOG_IDS.get(lang, "")
     site = SITE_URL.get(lang, SITE_URL["es"])
@@ -123,7 +170,7 @@ def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more
         read_more = f"{site}/blog/{slug}/"
     body_html = md_to_html(md_body, lang)
     if read_more:
-        more = READ_MORE.get(lang, READ_MORE["es"])
+        more = read_more_text or READ_MORE.get(lang, READ_MORE["es"])
         body_html += f"<p><b><a href='{read_more}'>{more} →</a></b></p>"
     content = body_html
     if dry or not all([CID, CSEC, RTOK, blog]):
