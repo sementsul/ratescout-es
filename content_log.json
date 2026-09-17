@@ -48,5 +48,17 @@
   "action": "selfcheck",
   "file": "C:\\Users\\Садовод ВКЦ\\Documents\\Default Project\\ratescout-es\\drafts\\mercado-semana-2026-09-17.md",
   "verdict": "VERDICT: PASS"
+ },
+ {
+  "at": "2026-09-17T19:27:17+00:00",
+  "action": "fixup-brief",
+  "lang": "ru",
+  "blogger": "https://blogger.ratescout.ru/2026/09/2026-09-17.html"
+ },
+ {
+  "at": "2026-09-17T19:27:19+00:00",
+  "action": "fixup-brief",
+  "lang": "ru",
+  "blogger": "https://blogger.ratescout.ru/2026/09/blog-post.html"
  }
 ]
