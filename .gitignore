@@ -9,6 +9,8 @@ vk_debug.txt            # bootstrap пишет сюда текст ошибки 
 # генерится в CI (fetch_rates.py) — не коммитим
 rates.json
 
+# черновики LLM (llm_draft.py) — только локально, публикуются после проверки
+drafts/
 # сборка и мусор
 dist/
 build/
