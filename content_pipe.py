@@ -268,18 +268,34 @@ def cmd_dupcheck(args):
     return 0 if st in ("ok", "warn") else 2
 
 
-def selfcheck_text(raw, facts):
-    """Прогнать текст через ИИ-контролёр. Возвращает True при VERDICT: PASS."""
+def selfcheck_text(raw, facts, tries=3):
+    """Прогнать текст через ИИ-контролёр. True при VERDICT: PASS.
+
+    Обрезанный вердикт (finish=length, нет 'VERDICT:') и ошибки API — повод
+    повторить, а не валить язык.
+    """
+    import time as _t
     slugs = sorted({s for s, _, _, _ in corpus_index()})
-    out = chat([{"role": "system", "content": SELFCHECK_SYS.format(
-                    corpus=corpus_titles(), slugs=", ".join(slugs[:200]),
-                    facts=facts or "нет (цифры запрещены)")},
-                {"role": "user", "content": raw[:6000]}],
-               max_tokens=800)
-    if not out:
-        return False
-    print(out)
-    return "VERDICT: PASS" in out
+    last = ""
+    for t in range(tries):
+        try:
+            out = chat([{"role": "system", "content": SELFCHECK_SYS.format(
+                            corpus=corpus_titles(), slugs=", ".join(slugs[:200]),
+                            facts=facts or "нет (цифры запрещены)")},
+                        {"role": "user", "content": raw[:6000]}],
+                       max_tokens=800)
+        except RuntimeError as e:
+            print(f"selfcheck: попытка {t + 1} — API недоступно ({str(e)[:100]})")
+            _t.sleep(15)
+            continue
+        if not out or "VERDICT:" not in out:
+            print(f"selfcheck: попытка {t + 1} — вердикт обрезан/пуст, повторяю…")
+            _t.sleep(10)
+            continue
+        print(out)
+        return "VERDICT: PASS" in out
+    print(f"selfcheck: все {tries} попытки сорваны перегрузкой — язык пропускаем")
+    return False
 
 
 def cmd_selfcheck_raw(raw, facts):
@@ -406,7 +422,25 @@ def cmd_market(args):
         return 1
     rc_all = 0
     for i, lang in enumerate(langs):
-        base, _ = names[lang]
+        try:
+            r = _market_lang(args, days, period, facts, y_line, hero_line, term_line,
+                             chart, today, lang)
+            rc_all = max(rc_all, r)
+        except Exception as e:  # noqa: BLE001 — страховка (хелпер и так не бросает)
+            print(f"{lang}: неожиданная ошибка ({str(e)[:150]}) — пропускаю язык")
+            rc_all = 2
+        if i < len(langs) - 1:
+            _t.sleep(15)
+    return rc_all
+
+
+def _market_lang(args, days, period, facts, y_line, hero_line, term_line,
+                 chart, today, lang):
+    """Один язык: генерация → ворота → архив + живой пост. Возвращает 0/2. Не бросает исключений."""
+    import time as _t
+    names = {"es": "mercado", "en": "market", "fr": "marche", "ru": "rynok"}
+    try:
+        base = names[lang]
         if days == 1:
             slug = f"{base}-{today}"
             title = {"es": f"Mercado en 24 horas: {today}", "en": f"Market in 24h: {today}",
@@ -434,10 +468,7 @@ def cmd_market(args):
             _t.sleep(20)
         if not passed:
             print(f"{lang}: selfcheck FAIL — в блог не идёт")
-            rc_all = 2
-            if i < len(langs) - 1:
-                _t.sleep(15)
-            continue
+            return 2
         body = out.split("---", 2)[2] if out.startswith("---") else out
         if args.site:
             dest = ART_DIR if lang == "ru" else os.path.join(ART_DIR, lang)
@@ -468,9 +499,10 @@ def cmd_market(args):
             create_post(lang, title, body, "", dry=True)
             upsert_live(lang, body, dry=True)
             print(f"[dry-run] {lang}: черновик OK, повтори с --yes для постинга")
-        if i < len(langs) - 1:
-            _t.sleep(15)
-    return rc_all
+        return 0
+    except Exception as e:  # noqa: BLE001 — один язык не должен валить остальные
+        print(f"{lang}: неожиданная ошибка ({str(e)[:150]}) — пропускаю язык")
+        return 2
 
 
 def cmd_fixup_brief(args):
