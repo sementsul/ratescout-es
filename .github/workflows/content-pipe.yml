@@ -19,6 +19,10 @@ on:
         description: "Задача (evergreen|daily|weekly)"
         required: false
         default: "evergreen"
+      langs:
+        description: "Языки через запятую (es,en,fr,ru)"
+        required: false
+        default: "es,en,fr,ru"
 
 permissions:
   contents: write        # коммит articles/, topics.json, content_log.json
@@ -47,6 +51,7 @@ jobs:
           BLOGGER_FR_BLOG_ID: ${{ secrets.BLOGGER_FR_BLOG_ID }}
           BLOGGER_RU_BLOG_ID: ${{ secrets.BLOGGER_RU_BLOG_ID }}
           TASK: ${{ inputs.task }}
+          LANGS: ${{ inputs.langs }}
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             H=$(date -u +%H); D=$(date -u +%u)
@@ -54,7 +59,8 @@ jobs:
             elif [ "$D" = "7" ] && [ "$H" = "18" ]; then TASK=weekly
             else TASK=daily; fi
           fi
-          echo "Задача: $TASK"
+          [ -z "$LANGS" ] && LANGS="es,en,fr,ru"
+          echo "Задача: $TASK, языки: $LANGS"
           if [ "$TASK" = "evergreen" ]; then
             python3 content_pipe.py draft-next --lang ru || echo "draft-next: ворота/очередь (см. лог)"
             for f in drafts/*.md; do
@@ -65,9 +71,9 @@ jobs:
               break  # одна статья за запуск — бережём free-лимиты
             done
           elif [ "$TASK" = "daily" ]; then
-            python3 content_pipe.py market-daily --langs es,en,fr,ru --yes || echo "daily: ворота (см. лог)"
+            python3 content_pipe.py market-daily --langs "$LANGS" --yes || echo "daily: ворота (см. лог)"
           else
-            python3 content_pipe.py market-weekly --langs es,en,fr,ru --yes || echo "weekly: ворота (см. лог)"
+            python3 content_pipe.py market-weekly --langs "$LANGS" --yes || echo "weekly: ворота (см. лог)"
           fi
       - name: Commit articles + queue state
         if: always()
