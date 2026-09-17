@@ -150,36 +150,67 @@ def log(entry):
 
 # ---------- рыночные цифры (считает скрипт, НЕ модель) ----------
 
+def _pts(series):
+    """[(datetime, value)] — понимает 'YYYY-MM-DD' и 'YYYY-MM-DD HH:MM'."""
+    out = []
+    for ts, v in series:
+        dt = None
+        for f in ("%Y-%m-%d %H:%M", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(ts, f)
+                break
+            except (ValueError, TypeError):
+                pass
+        if dt is not None and isinstance(v, (int, float)) and v:
+            out.append((dt, v))
+    return out
+
+
 def market_stats(days=1):
     try:
         hist = json.load(open(os.path.join(ROOT, "history.json"), encoding="utf-8"))["series"]
     except (OSError, ValueError, KeyError):
-        return "", []
+        return "", [], {}
     try:
         kinds = json.load(open(os.path.join(ROOT, "currencies.json"), encoding="utf-8"))["currencies"]
     except (OSError, ValueError, KeyError):
         kinds = {}
-    rows, movers = [], []
-    span_h = 0
+    rows, movers, win = [], [], {}
+    earliest = None
     for slug, pts in hist.items():
-        if len(pts) < 2:
+        parsed = _pts(pts)
+        if len(parsed) < 2:
             continue
-        span_h = max(span_h, len(pts) - 1)  # шаг — примерно час
-        last = pts[-1][1]
-        # изменение за N дней: берём точку ~days*24 назад
-        past = pts[max(0, len(pts) - 1 - days * 24)][1]
-        if not past:
-            continue
-        chg = (last - past) / past * 100
+        if earliest is None or parsed[0][0] < earliest:
+            earliest = parsed[0][0]
+        last_dt, last = parsed[-1]
+        target = last_dt - timedelta(hours=days * 24)
+        past = parsed[0]
+        for dt, v in parsed:
+            if dt <= target:
+                past = (dt, v)
+            else:
+                break
+        span_h = (last_dt - past[0]).total_seconds() / 3600
+        chg = (last - past[1]) / past[1] * 100
         if slug in MAJORS:
-            rows.append((slug, last, chg))
-        # в топы — только криптовалюты с достаточной историей
-        # (фиат/экзотика с редкими точками врёт: idram −21% и т.п.)
-        if len(pts) > days * 12 and kinds.get(slug, {}).get("category") == "Криптовалюты":
-            movers.append((slug, chg))
-    lines = [f"{s}: {v:.4f} USDT ({c:+.1f}%/{days}д)" for s, v, c in rows]
+            rows.append((slug, last, chg, span_h))
+        # в топы — только криптовалюты (фиат с редкими точками врёт),
+        # стейблкоины исключаем (плоские ~0% — шум)
+        if (kinds.get(slug, {}).get("category") == "Криптовалюты" and span_h >= days * 20
+                and not any(x in slug for x in ("tether", "usd-coin", "trueusd", "dai", "usdc"))):
+            movers.append((slug, chg, span_h))
+        if slug in ("bitcoin", "ethereum", "solana"):
+            win[slug] = [v for _, v in parsed[-30:]]
+    want = "24 часа" if days == 1 else "7 дней"
+    lines = []
+    for s, v, c, sp in rows:
+        tag = f"{want}" if sp >= days * 20 else f"~{sp:.0f} ч (старее нет)"
+        lines.append(f"{s}: {v:.4f} USDT ({c:+.1f}% за {tag})")
     movers.sort(key=lambda x: x[1])
-    return f"Покрытие истории: ~{span_h} ч; изменения посчитаны от точки {days*24} ч назад (или самой старой).\n" + "\n".join(lines), movers
+    head = (f"Сегодня: {date.today().isoformat()}. История с {earliest:%Y-%m-%d}. "
+            f"Проценты честные: за {want}, где истории не хватило — указан реальный охват.")
+    return head + "\n" + "\n".join(lines), movers, win
 
 
 # ---------- команды ----------
@@ -306,13 +337,28 @@ def cmd_market(args):
     import time as _t
     days = 1 if args.which == "daily" else 7
     period = "дневной" if days == 1 else "недельный"
-    stats, movers = market_stats(days)
+    stats, movers, win = market_stats(days)
     if not stats:
         print("нет history.json — не из чего строить обзор")
         return 1
-    ups = ", ".join(f"{s} {c:+.1f}%" for s, c in movers[-3:][::-1])
-    dns = ", ".join(f"{s} {c:+.1f}%" for s, c in movers[:3])
-    facts = f"Сегодня: {date.today().isoformat()}\n{stats}\nТоп роста: {ups}\nТоп падения: {dns}"
+    ups = ", ".join(f"{s} {c:+.1f}%" for s, c, _ in movers[-3:][::-1])
+    dns = ", ".join(f"{s} {c:+.1f}%" for s, c, _ in movers[:3])
+    facts = f"{stats}\nТоп роста: {ups or 'нет данных'}\nТоп падения: {dns or 'нет данных'}"
+    # график: BTC/ETH/SOL за окно (SVG, без зависимостей)
+    from charts import svg_chart  # noqa
+    chart = svg_chart([(s.upper(), win[s]) for s in ("bitcoin", "ethereum", "solana") if s in win],
+                      title="BTC / ETH / SOL — % от начала окна")
+    # термин недели для weekly (глоссарий; модель переведёт на язык статьи)
+    term_line = ""
+    if days > 1:
+        try:
+            terms = json.load(open(os.path.join(ROOT, "glossary.json"), encoding="utf-8"))["terms"]
+            term = terms[date.today().isocalendar()[1] % len(terms)]
+            term_line = (f"\nТЕРМИН НЕДЕЛИ (включи раздел о нём, переведи определение "
+                         f"на язык статьи, ссылка /slovar/{term['slug']}/): "
+                         f"{term['slug']} | RU: {term.get('def_ru', '')} | EN: {term.get('def_en', '')}")
+        except (OSError, ValueError, KeyError):
+            pass
     today = date.today().isoformat()
     names = {"es": ("mercado", "Mercado"), "en": ("market", "Market"),
              "fr": ("marche", "Marché"), "ru": ("rynok", "Рынок")}
@@ -338,7 +384,7 @@ def cmd_market(args):
         for g in range(2):  # вторая попытка — другим составом пула
             try:
                 out = chat([{"role": "system", "content": prompt},
-                            {"role": "user", "content": f"ФАКТЫ:\n{facts}\nslug: {slug}\ntitle: {title}"}],
+                            {"role": "user", "content": f"ФАКТЫ:\n{facts}{term_line}\nslug: {slug}\ntitle: {title}"}],
                            max_tokens=3500)
             except RuntimeError as e:
                 print(f"{lang}: генерация {g + 1} не удалась: {str(e)[:150]}")
@@ -370,7 +416,8 @@ def cmd_market(args):
         if args.yes:
             url = create_post(lang, title, body, slug if args.site else "",
                               labels=["RateScout", period], dry=False, read_more=read_more,
-                              read_more_text=read_more_text if not args.site else None)
+                              read_more_text=read_more_text if not args.site else None,
+                              extra_html=chart)
             log({"action": f"market-{args.which}", "lang": lang, "slug": slug, "blogger": url})
         else:
             create_post(lang, title, body, "", dry=True)

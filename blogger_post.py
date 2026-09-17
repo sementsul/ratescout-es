@@ -158,17 +158,20 @@ def update_post_link(blog, token, post_id, new_href, new_text):
 
 
 def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more=None,
-                read_more_text=None):
+                read_more_text=None, extra_html=""):
     """Создать новый пост. Возвращает URL поста (или '[dry-run]' без секретов).
 
     read_more: URL финальной ссылки (по умолчанию из slug; None + пустой slug — без ссылки).
     read_more_text: текст ссылки (по умолчанию READ_MORE[lang]; для обзоров — FULL_TABLE[lang]).
+    extra_html: сырой HTML в конец поста (SVG-графики) — вставляется как есть, без экранирования.
     """
     blog = BLOG_IDS.get(lang, "")
     site = SITE_URL.get(lang, SITE_URL["es"])
     if read_more is None and slug:
         read_more = f"{site}/blog/{slug}/"
     body_html = md_to_html(md_body, lang)
+    if extra_html:
+        body_html += extra_html
     if read_more:
         more = read_more_text or READ_MORE.get(lang, READ_MORE["es"])
         body_html += f"<p><b><a href='{read_more}'>{more} →</a></b></p>"
