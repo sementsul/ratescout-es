@@ -389,15 +389,21 @@ def cmd_fixup_brief(args):
         return 0
     today = date.today().isoformat()
     base = {"es": "mercado", "en": "market", "fr": "marche", "ru": "rynok"}
-    titles = {"es": f"Mercado en 24 horas: {today}", "en": f"Market in 24h: {today}",
-              "fr": f"Marché en 24h : {today}", "ru": f"Рынок за сутки: {today}"}
+    titles = []
+    for lang in [l.strip() for l in args.langs.split(",") if l.strip() in base]:
+        titles.append((lang,
+                       {"es": f"Mercado en 24 horas: {today}", "en": f"Market in 24h: {today}",
+                        "fr": f"Marché en 24h : {today}", "ru": f"Рынок за сутки: {today}"}[lang]))
+        titles.append((lang,
+                       {"es": "Mercado de la semana", "en": "Market of the week",
+                        "fr": "Marché de la semaine", "ru": "Рынок за неделю"}[lang]))
     token = access_token()
     rc = 0
-    for lang in [l.strip() for l in args.langs.split(",") if l.strip() in base]:
+    for lang, title in titles:
         blog = BLOG_IDS.get(lang, "")
-        url, pid, _ = find_post(blog, token, titles[lang])
+        url, pid, _ = find_post(blog, token, title)
         if not pid:
-            print(f"{lang}: пост '{titles[lang]}' не найден — пропускаю")
+            print(f"{lang}: пост '{title}' не найден — пропускаю")
             continue
         update_post_link(blog, token, pid, svodka_url(lang), FULL_TABLE.get(lang, FULL_TABLE["es"]))
         log({"action": "fixup-brief", "lang": lang, "blogger": url})
