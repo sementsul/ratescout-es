@@ -1,0 +1,78 @@
+name: Content pipeline (AI drafts + market briefs)
+
+# ИИ-контент с воротами качества:
+#   Пн 08:00 UTC — evergreen-черновик из topics.json (dup-check → draft → selfcheck)
+#   Ежедневно 11:30 UTC — market-daily (обзор за сутки, цифры считает скрипт)
+#   Вс 18:00 UTC — market-weekly (обзор за 7 дней)
+# Публикация (--yes) — только если dup-check и selfcheck пройдены; иначе артефакт
+# остаётся черновиком, а topics.json помечает пропуск. Без секретов — сухой прогон.
+# Секреты: OPENROUTER_API_KEY (+OPENROUTER_MODEL опц.), BLOGGER_* (те же, что в blogger.yml).
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+    - cron: "30 11 * * *"
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Задача (evergreen|daily|weekly)"
+        required: false
+        default: "evergreen"
+
+permissions:
+  contents: write        # коммит articles/, topics.json, content_log.json
+
+concurrency:
+  group: content-pipe
+  cancel-in-progress: false
+
+jobs:
+  content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Run content pipeline
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          BLOGGER_ES_BLOG_ID: ${{ secrets.BLOGGER_ES_BLOG_ID }}
+          BLOGGER_EN_BLOG_ID: ${{ secrets.BLOGGER_EN_BLOG_ID }}
+          BLOGGER_FR_BLOG_ID: ${{ secrets.BLOGGER_FR_BLOG_ID }}
+          TASK: ${{ inputs.task }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            H=$(date -u +%H); D=$(date -u +%u)
+            if [ "$H" = "08" ]; then TASK=evergreen
+            elif [ "$D" = "7" ] && [ "$H" = "18" ]; then TASK=weekly
+            else TASK=daily; fi
+          fi
+          echo "Задача: $TASK"
+          if [ "$TASK" = "evergreen" ]; then
+            python3 content_pipe.py draft-next --lang ru || echo "draft-next: ворота/очередь (см. лог)"
+            for f in drafts/*.md; do
+              [ -f "$f" ] || continue
+              python3 content_pipe.py dup-check "$f" || continue
+              python3 content_pipe.py selfcheck "$f" || continue
+              python3 content_pipe.py publish "$f" --langs es --yes || echo "publish пропущен"
+              break  # одна статья за запуск — бережём free-лимиты
+            done
+          elif [ "$TASK" = "daily" ]; then
+            python3 content_pipe.py market-daily --lang es --yes || echo "daily: ворота (см. лог)"
+          else
+            python3 content_pipe.py market-weekly --lang es --yes || echo "weekly: ворота (см. лог)"
+          fi
+      - name: Commit articles + queue state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add articles topics.json content_log.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore(content): ИИ-статья/обзор + очередь тем [skip ci]"
+          git push

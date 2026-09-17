@@ -1,0 +1,160 @@
+{
+ "topics": [
+  {
+   "id": "memo-tag",
+   "lang": "ru",
+   "topic": "Memo, tag и назначение платежа при обмене: куда вводить и что будет при ошибке",
+   "status": "todo"
+  },
+  {
+   "id": "podtverzhdeniya",
+   "lang": "ru",
+   "topic": "Подтверждения сети: сколько ждать перевод и от чего зависит скорость",
+   "status": "todo"
+  },
+  {
+   "id": "mempul",
+   "lang": "ru",
+   "topic": "Что такое мемпул и почему перевод висит без подтверждений",
+   "status": "todo"
+  },
+  {
+   "id": "gaz-eth",
+   "lang": "ru",
+   "topic": "Газ в сети Ethereum простыми словами: как не переплатить",
+   "status": "todo"
+  },
+  {
+   "id": "depeg-risk",
+   "lang": "ru",
+   "topic": "Отвязка стейблкоина от доллара (депег): что это и как себя вести",
+   "status": "todo"
+  },
+  {
+   "id": "dca-obmen",
+   "lang": "ru",
+   "topic": "Покупка частями (DCA): как усреднить курс без трейдинга",
+   "status": "todo"
+  },
+  {
+   "id": "stakan",
+   "lang": "ru",
+   "topic": "Стакан заявок: что видно и почему курс уходит при крупной сделке",
+   "status": "todo"
+  },
+  {
+   "id": "funding",
+   "lang": "ru",
+   "topic": "Фандинг на фьючерсах: при чём тут курс обмена",
+   "status": "todo"
+  },
+  {
+   "id": "test-perevod",
+   "lang": "ru",
+   "topic": "Тестовый перевод малой суммой: когда обязателен, а когда лишний",
+   "status": "todo"
+  },
+  {
+   "id": "karta-3lica",
+   "lang": "ru",
+   "topic": "Карта третьего лица при обмене: почему обменники отказывают",
+   "status": "todo"
+  },
+  {
+   "id": "chargeback",
+   "lang": "ru",
+   "topic": "Чарджбэк и обратимые платежи: риск обменника и твои задержки",
+   "status": "todo"
+  },
+  {
+   "id": "otzyvy-nakrutka",
+   "lang": "ru",
+   "topic": "Как читать отзывы об обменнике и отличить накрутку",
+   "status": "todo"
+  },
+  {
+   "id": "aml-ball",
+   "lang": "ru",
+   "topic": "AML-риск монет: грязные, серые и чистые средства простыми словами",
+   "status": "todo"
+  },
+  {
+   "id": "dust-ataka",
+   "lang": "ru",
+   "topic": "Пылевая атака (dusting): мелкие переводы-разведка и что с ними делать",
+   "status": "todo"
+  },
+  {
+   "id": "clipboard-virus",
+   "lang": "ru",
+   "topic": "Вирусы-подмены адреса (clipboard hijack): как не отправить деньги вору",
+   "status": "todo"
+  },
+  {
+   "id": "fake-support",
+   "lang": "ru",
+   "topic": "Фейковая поддержка обменников: как отличить мошенников",
+   "status": "todo"
+  },
+  {
+   "id": "qr-oshibki",
+   "lang": "ru",
+   "topic": "Оплата по QR и адресу: типичные ошибки и как их избежать",
+   "status": "todo"
+  },
+  {
+   "id": "rug-pull",
+   "lang": "ru",
+   "topic": "Rug pull и скам-токены: признаки, которые видно заранее",
+   "status": "todo"
+  },
+  {
+   "id": "airdrop-skam",
+   "lang": "ru",
+   "topic": "Скам-эйрдропы: почему бесплатные токены просят доступ к кошельку",
+   "status": "todo"
+  },
+  {
+   "id": "rezervy-chitat",
+   "lang": "ru",
+   "topic": "Резервы обменника: как читать цифры и что значит пустой резерв",
+   "status": "todo"
+  },
+  {
+   "id": "cuevas",
+   "lang": "es",
+   "topic": "Cuevas vs exchanges: dónde conviene cambiar USDT en Argentina",
+   "status": "todo"
+  },
+  {
+   "id": "afip-cripto",
+   "lang": "es",
+   "topic": "Impuestos y cripto en Argentina: lo básico que conviene saber",
+   "status": "todo"
+  },
+  {
+   "id": "mp-a-usdt",
+   "lang": "es",
+   "topic": "De Mercado Pago a USDT: vías, costos y tiempos",
+   "status": "todo"
+  },
+  {
+   "id": "tarjeta-vs-cripto",
+   "lang": "es",
+   "topic": "Dólar tarjeta vs dólar cripto: comparación práctica",
+   "status": "todo"
+  },
+  {
+   "id": "p2p-seguro-ar",
+   "lang": "es",
+   "topic": "P2P seguro en Argentina: reglas básicas antes de transferir",
+   "status": "todo"
+  },
+  {
+   "id": "comisiones-redes",
+   "lang": "es",
+   "topic": "Comisiones de red (TRC20, ERC20, Lightning): cómo pagar menos",
+   "status": "todo"
+  }
+ ]
+}
