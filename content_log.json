@@ -12,5 +12,41 @@
   "lang": "ru",
   "slug": "rynok-nedelya-2026-09-17",
   "blogger": "https://blogger.ratescout.ru/2026/09/blog-post.html"
+ },
+ {
+  "at": "2026-09-17T18:44:07+00:00",
+  "action": "selfcheck",
+  "file": "drafts/chto-takoe-spred-pri-obmene.md",
+  "verdict": "VERDICT: FAIL"
+ },
+ {
+  "at": "2026-09-17T18:44:22+00:00",
+  "action": "selfcheck",
+  "file": "drafts/chto-takoe-spred-pri-obmene.md",
+  "verdict": "VERDICT: FAIL"
+ },
+ {
+  "at": "2026-09-17T18:44:49+00:00",
+  "action": "selfcheck",
+  "file": "C:\\Users\\Садовод ВКЦ\\Documents\\Default Project\\ratescout-es\\drafts\\rynok-2026-09-17.md",
+  "verdict": "VERDICT: FAIL"
+ },
+ {
+  "at": "2026-09-17T18:45:46+00:00",
+  "action": "selfcheck",
+  "file": "C:\\Users\\Садовод ВКЦ\\Documents\\Default Project\\ratescout-es\\drafts\\mercado-2026-09-17.md",
+  "verdict": "VERDICT: PASS"
+ },
+ {
+  "at": "2026-09-17T18:49:45+00:00",
+  "action": "selfcheck",
+  "file": "C:\\Users\\Садовод ВКЦ\\Documents\\Default Project\\ratescout-es\\drafts\\mercado-2026-09-17.md",
+  "verdict": "VERDICT: PASS"
+ },
+ {
+  "at": "2026-09-17T18:50:00+00:00",
+  "action": "selfcheck",
+  "file": "C:\\Users\\Садовод ВКЦ\\Documents\\Default Project\\ratescout-es\\drafts\\mercado-semana-2026-09-17.md",
+  "verdict": "VERDICT: PASS"
  }
 ]
