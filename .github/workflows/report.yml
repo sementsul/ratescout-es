@@ -8,7 +8,8 @@ name: Weekly AI report
 
 on:
   schedule:
-    - cron: "30 6 * * 1"
+    # Первый в утренней очереди (05:00 UTC), дальше daily/evergreen/weekly с шагом 10 мин.
+    - cron: "0 5 * * 1"
   workflow_dispatch:
 
 permissions:

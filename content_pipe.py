@@ -421,6 +421,10 @@ def cmd_market(args):
         print("нет языков (es,en,fr,ru)")
         return 1
     rc_all = 0
+    try:
+        lang_sleep = float(os.environ.get("MARKET_LANG_SLEEP", "60"))
+    except ValueError:
+        lang_sleep = 60
     for i, lang in enumerate(langs):
         try:
             r = _market_lang(args, days, period, facts, y_line, hero_line, term_line,
@@ -430,7 +434,8 @@ def cmd_market(args):
             print(f"{lang}: неожиданная ошибка ({str(e)[:150]}) — пропускаю язык")
             rc_all = 2
         if i < len(langs) - 1:
-            _t.sleep(15)
+            print(f"пауза {lang_sleep:.0f}с перед следующим языком…")
+            _t.sleep(lang_sleep)
     return rc_all
 
 

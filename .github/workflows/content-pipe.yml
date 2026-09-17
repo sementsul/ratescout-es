@@ -10,9 +10,11 @@ name: Content pipeline (AI drafts + market briefs)
 
 on:
   schedule:
-    - cron: "0 8 * * 1"
-    - cron: "30 11 * * *"
-    - cron: "0 18 * * 0"
+    # Утренняя очередь (UTC), шаг 10 мин: daily → evergreen → weekly.
+    # Общая concurrency-группа ставит запуски в очередь — параллельно не ломятся.
+    - cron: "10 5 * * *"
+    - cron: "20 5 * * 1"
+    - cron: "30 5 * * 1"
   workflow_dispatch:
     inputs:
       task:
@@ -54,9 +56,9 @@ jobs:
           LANGS: ${{ inputs.langs }}
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
-            H=$(date -u +%H); D=$(date -u +%u)
-            if [ "$H" = "08" ]; then TASK=evergreen
-            elif [ "$D" = "7" ] && [ "$H" = "18" ]; then TASK=weekly
+            M=$(date -u +%M); D=$(date -u +%u)
+            if [ "$D" = "1" ] && [ "$M" = "20" ]; then TASK=evergreen
+            elif [ "$D" = "1" ] && [ "$M" = "30" ]; then TASK=weekly
             else TASK=daily; fi
           fi
           [ -z "$LANGS" ] && LANGS="es,en,fr,ru"
