@@ -118,7 +118,16 @@ jobs:
       - id: deploy
         uses: actions/deploy-pages@v5
 
-      # Пинг IndexNow только при реальных изменениях (push/ручной запуск), НЕ на почасовом cron
+      # Пинг IndexNow только при реальных изменениях контента (push/ручной запуск), НЕ на почасовом cron
+      # и НЕ на бот-коммитах history.json (иначе весь sitemap спамится каждый час → троттлинг).
+      - name: Check content changes for IndexNow
+        id: indexnow_gate
+        run: |
+          if git diff HEAD~1 --name-only 2>/dev/null | grep -qE '^(build\.py|articles/|book/|data\.json|currencies\.json|glossary\.json|blogger_daily\.py)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Ping IndexNow (Яндекс/Bing)
-        if: github.event_name != 'schedule'
+        if: github.event_name != 'schedule' && steps.indexnow_gate.outputs.changed == 'true'
         run: python3 indexnow.py || echo "IndexNow пропущен"
