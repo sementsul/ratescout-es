@@ -94,7 +94,21 @@ def chat(messages, model=None, max_tokens=2000, temperature=0.7, timeout=120):
                 break  # пустой ответ ретраями не лечится — следующая модель
             except Exception as e:
                 last_err = f"модель #{mi}: {e}"
-                time.sleep(5 * (attempt + 1))
+                # уважаем Retry-After из тела 429 (провайдер просит подождать N сек),
+                # иначе — экспоненциальная пауза + джиттер против толпы
+                wait = 5 * (attempt + 1)
+                body = getattr(e, "read", lambda: b"")()
+                try:
+                    import json as _j
+                    meta = ((_j.loads(body.decode() if isinstance(body, bytes) else body)
+                             .get("error", {}) or {}).get("metadata", {}) or {})
+                    ra = meta.get("retry_after_seconds")
+                    if isinstance(ra, (int, float)) and 0 < ra <= 300:
+                        wait = ra
+                except Exception:  # noqa: BLE001
+                    pass
+                import random as _r
+                time.sleep(wait + _r.uniform(0, 3))  # джиттер — не ломимся всей толпой разом
         print(f"llm: модель #{mi} не ответила ({last_err[:120]}), пробую следующую…")
     raise RuntimeError(f"OpenRouter: все модели заняты/недоступны. Последняя ошибка: {last_err[:300]}")
 
