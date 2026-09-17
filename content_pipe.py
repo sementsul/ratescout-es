@@ -505,6 +505,124 @@ def _market_lang(args, days, period, facts, y_line, hero_line, term_line,
         return 2
 
 
+QUERY_SYS = (
+    "Ты — SEO-аналитик RateScout (справочник курсов обмена криптовалют). "
+    "Даны поисковые запросы пользователей и заголовки существующих статей. "
+    "Верни СТРОГО JSON-массив (без пояснений, можно в ```json): "
+    "[{{\"topic\": \"тема статьи\", \"lang\": \"ru|es|en\"}}], 3–10 штук. "
+    "Правила: группируй похожие запросы в одну тему; мусор (бренды, навигация, "
+    "одно слово) отбрось; дубли существующих статей отбрось; тема — конкретный "
+    "низкочастотный вопрос (как/что/сколько/где), а не 'обзор рынка'; "
+    "lang — язык запросов (кириллица→ru, иначе es, технический английский→en)."
+)
+
+QUERY_INTENT = ("обмен", "курс", "крипт", "битко", "битк", "usdt", "usdc", "btc", "eth",
+                "вывод", "ввод", "кошел", "бирж", "p2p", "aml", "комис", "резерв", "спред",
+                "доллар", "dolar", "cripto", "cambio", "canjear", "exchange", "wallet",
+                "fee", "tasa", "retiro", "deposito", "tron", "solana", "monero", "ton")
+
+
+def load_queries():
+    """[(q, вес)] из yandex.json, metrika.json, queries.txt (что есть)."""
+    out = []
+    try:
+        for x in json.load(open(os.path.join(ROOT, "yandex.json"), encoding="utf-8"))["queries"]:
+            out.append((x.get("q", ""), x.get("shows") or 0))
+    except (OSError, ValueError, KeyError):
+        pass
+    try:
+        for x in json.load(open(os.path.join(ROOT, "metrika.json"), encoding="utf-8"))["phrases"]:
+            out.append((x.get("q", ""), x.get("visits") or 0))
+    except (OSError, ValueError, KeyError):
+        pass
+    try:
+        for ln in open(os.path.join(ROOT, "queries.txt"), encoding="utf-8"):
+            ln = ln.strip()
+            if ln and not ln.startswith("#"):
+                out.append((ln, 1))
+    except OSError:
+        pass
+    return out
+
+
+def _query_junk(q):
+    ql = (q or "").lower().strip()
+    if len(ql) < 6 or ql.startswith(("http", "www.", "/")):
+        return True
+    if "ratescout" in ql or "mymany" in ql or "bestchange" in ql:
+        return True
+    if len(ql.split()) < 2:
+        return True
+    return not any(k in ql for k in QUERY_INTENT)
+
+
+def cmd_queries_to_topics(args):
+    """НЧ-запросы → темы в topics.json (через ИИ-группировку, с антидублем)."""
+    seen, cands = set(), []
+    for q, w in sorted(load_queries(), key=lambda x: -x[1]):
+        q = (q or "").strip()
+        if not q or q.lower() in seen or _query_junk(q):
+            continue
+        seen.add(q.lower())
+        cands.append((q, w))
+    cands = cands[:args.max]
+    if not cands:
+        print("запросов нет (yandex.json/metrika.json/queries.txt пусты)")
+        return 1
+    existing = [t["topic"] for t in load_topics()] + [t for _, t, _, _ in corpus_index()[:80]]
+    qlist = "\n".join(f"- {q} ({w})" for q, w in cands)
+    try:
+        out = chat([{"role": "system", "content": QUERY_SYS},
+                    {"role": "user", "content": f"ЗАПРОСЫ (текст, вес):\n{qlist}\n\nСУЩЕСТВУЮЩИЕ:\n" +
+                                                "\n".join(f"- {t}" for t in existing[:100])}],
+                   max_tokens=1500)
+    except RuntimeError as e:
+        print(f"ИИ недоступен (free-tier перегружен): {str(e)[:120]} — попробуй позже")
+        return 1
+    if not out:
+        return 1
+    m = re.search(r"\[.*\]", out, re.S)
+    try:
+        items = json.loads(m.group(0)) if m else []
+    except ValueError:
+        print("ИИ вернул не-JSON, пропускаю")
+        return 1
+    topics = load_topics()
+    have = {t["topic"].lower() for t in topics}
+    added = 0
+    for it in items:
+        topic = str(it.get("topic", "")).strip()
+        lang = it.get("lang", "ru") if it.get("lang") in ("ru", "es", "en") else "ru"
+        if not topic or topic.lower() in have:
+            continue
+        st, sim, hit = dup_check(topic)
+        if st == "block":
+            print(f"дубль: {topic} → {hit}")
+            continue
+        if args.yes:
+            topics.append({"id": slugify(topic)[:60] or f"q-{added}",
+                           "lang": lang, "topic": topic,
+                           "status": "todo", "source": "query"})
+            have.add(topic.lower())
+            added += 1
+        print(f"[{'добавлю' if args.yes else 'кандидат'}] ({lang}) {topic}")
+    if args.yes and added:
+        save_topics(topics)
+        log({"action": "queries-to-topics", "added": added})
+    print(f"итог: {added} тем" + ("" if args.yes else " (сухой прогон — добавь --yes)"))
+    return 0
+
+
+def slugify(text):
+    tr = {"а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
+          "ж": "zh", "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m",
+          "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u",
+          "ф": "f", "х": "h", "ц": "c", "ч": "ch", "ш": "sh", "щ": "shch",
+          "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya"}
+    text = "".join(tr.get(c, c) for c in (text or "").lower())
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")[:60].strip("-")
+
+
 def cmd_fixup_brief(args):
     """Починить ссылку в уже опубликованном обзоре: 'Читать полностью' → 'Полная сводка → /svodka/'."""
     from blogger_post import (BLOG_IDS, CID, CSEC, RTOK, FULL_TABLE,
@@ -551,6 +669,9 @@ def main():
     p.add_argument("--yes", action="store_true")
     f = sub.add_parser("fixup-brief", help="починить ссылку в опубликованном обзоре")
     f.add_argument("--langs", default="ru")
+    q = sub.add_parser("queries-to-topics", help="НЧ-запросы → темы статей")
+    q.add_argument("--max", type=int, default=60)
+    q.add_argument("--yes", action="store_true")
     for w in ("market-daily", "market-weekly"):
         m = sub.add_parser(w, help="ИИ-обзор рынка в 4 блога")
         m.add_argument("--langs", default="es,en,fr,ru")
@@ -568,6 +689,8 @@ def main():
         return cmd_publish(a)
     if a.cmd == "fixup-brief":
         return cmd_fixup_brief(a)
+    if a.cmd == "queries-to-topics":
+        return cmd_queries_to_topics(a)
     if a.cmd in ("market-daily", "market-weekly"):
         a.which = "daily" if a.cmd == "market-daily" else "weekly"
         return cmd_market(a)

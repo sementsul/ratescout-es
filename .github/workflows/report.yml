@@ -1,0 +1,35 @@
+name: Weekly AI report
+
+# Понедельник 06:30 UTC — отчёт раньше evergreen-статьи (08:00), чтобы цифры
+# очереди тем были свежими. Живые HTTP-проверки 4 сайтов + статистика пайплайна
+# + рынок + ИИ-саммари — в личку владельцу (Telegram).
+# Секреты: TELEGRAM_TOKEN, ALERT_CHAT_ID, OPENROUTER_API_KEY (опц., без него —
+# детерминированный отчёт без саммари).
+
+on:
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Send weekly report
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          ALERT_CHAT_ID: ${{ secrets.ALERT_CHAT_ID }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
+        run: python3 ai_report.py

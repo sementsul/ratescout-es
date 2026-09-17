@@ -62,6 +62,7 @@ jobs:
           [ -z "$LANGS" ] && LANGS="es,en,fr,ru"
           echo "Задача: $TASK, языки: $LANGS"
           if [ "$TASK" = "evergreen" ]; then
+            python3 content_pipe.py queries-to-topics --yes || echo "очередь без пополнения (см. лог)"
             python3 content_pipe.py draft-next --lang ru || echo "draft-next: ворота/очередь (см. лог)"
             for f in drafts/*.md; do
               [ -f "$f" ] || continue
