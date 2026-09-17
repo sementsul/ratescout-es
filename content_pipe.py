@@ -57,7 +57,8 @@ SELFCHECK_SYS = (
     "VERDICT: PASS или FAIL\nREASONS: список проблем через '; ' (или 'нет')\n"
     "Критерии FAIL: (1) конкретные курсы/резервы/проценты/даты в ТЕЛЕ статьи, "
     "которых нет в блоке ФАКТЫ (frontmatter date/slug — служебные, разрешены; "
-    "дата из ФАКТОВ 'Сегодня' в теле обзора — разрешена); "
+    "дата из ФАКТОВ 'Сегодня' в теле обзора — разрешена; "
+    "описание героя дня словами без цифр — разрешено); "
     "(2) финансовые рекомендации ('покупайте', 'выгодно вложить'); (3) реклама обменников; "
     "(4) ссылки /blog/ не из списка СЛАГИ, ссылки не на /blog/ и не на /valuta/; "
     "(5) тема дублирует статью из СУЩЕСТВУЮЩИЕ (пересказ теми же словами).\n"
@@ -71,7 +72,11 @@ MARKET_SYS = (
     "slug и title возьми ТОЧНО из сообщения пользователя, не придумывай свои. "
     "Формат: frontmatter (---, title, description, date: {today}, slug: {slug}) + 300–500 слов: "
     "лидеры роста/падения, стейблкоины отдельно, 1 абзац 'что это значит для обмена' "
-    "(без торговых рекомендаций). Ссылки — только /valuta/<slug>/ и /blog/<slug>/."
+    "(без торговых рекомендаций). Если дано ВЧЕРА — свяжи повествование с ним "
+    "(разворот/продолжение/затухание), не копируй вчерашние формулировки. "
+    "Если дан ГЕРОЙ ДНЯ — включи мини-раздел о проекте (сеть, назначение; без цифр цен). "
+    "Не ссылайся на сам этот обзор. "
+    "Ссылки — только /valuta/<slug>/ и /blog/<slug>/."
 )
 
 
@@ -166,7 +171,8 @@ def _pts(series):
     return out
 
 
-def market_stats(days=1):
+def market_stats(days=1, ref_days_ago=0):
+    """Цифры считает скрипт, НЕ модель. ref_days_ago=1 — срез 'вчера в это время' (для связности)."""
     try:
         hist = json.load(open(os.path.join(ROOT, "history.json"), encoding="utf-8"))["series"]
     except (OSError, ValueError, KeyError):
@@ -175,10 +181,15 @@ def market_stats(days=1):
         kinds = json.load(open(os.path.join(ROOT, "currencies.json"), encoding="utf-8"))["currencies"]
     except (OSError, ValueError, KeyError):
         kinds = {}
+    # якорь «конец окна»: глобальный максимум минус сдвиг (для вчерашнего среза)
+    all_ts = [dt for pts in hist.values() for dt, _ in _pts(pts)]
+    if not all_ts:
+        return "", [], {}
+    anchor = max(all_ts) - timedelta(hours=ref_days_ago * 24)
     rows, movers, win = [], [], {}
     earliest = None
     for slug, pts in hist.items():
-        parsed = _pts(pts)
+        parsed = [(dt, v) for dt, v in _pts(pts) if dt <= anchor]
         if len(parsed) < 2:
             continue
         if earliest is None or parsed[0][0] < earliest:
@@ -344,6 +355,33 @@ def cmd_market(args):
     ups = ", ".join(f"{s} {c:+.1f}%" for s, c, _ in movers[-3:][::-1])
     dns = ", ".join(f"{s} {c:+.1f}%" for s, c, _ in movers[:3])
     facts = f"{stats}\nТоп роста: {ups or 'нет данных'}\nТоп падения: {dns or 'нет данных'}"
+    # ворота скуки (только daily): flat-рынок не постим — убиваем thin volume в корне
+    try:
+        gate = float(os.environ.get("MARKET_VOL_GATE", "3.0"))
+    except ValueError:
+        gate = 3.0
+    #тики majors лежат в stats строками "slug: price USDT (+x.x% ...)": вытащим макс |chg|
+    peak = 0.0
+    for m in re.finditer(r"\(([+-][\d.,]+)%", stats):
+        peak = max(peak, abs(float(m.group(1).replace(",", "."))))
+    for _, c, _ in movers:
+        peak = max(peak, abs(c))
+    if days == 1 and peak < gate:
+        print(f"рынок flat (макс. движение {peak:.1f}% < {gate:.1f}%) — постинг пропущен, thin не плодим")
+        log({"action": "market-daily-skip", "peak": round(peak, 1)})
+        return 0
+    # вчерашний срез — серийность вместо одинаковых простыней
+    y_stats, _, _ = market_stats(days, ref_days_ago=1)
+    y_line = ""
+    if y_stats:
+        y_moves = "; ".join(y_stats.splitlines()[1:4])
+        y_line = f"\nВЧЕРА В ЭТО ВРЕМЯ: {y_moves} (свяжи с сегодня: разворот/продолжение/затухание, не повторяй дословно)"
+    # герой дня — мини-evergreen внутри протухающего поста (строго без дат и цифр)
+    hero = movers[-1][0] if movers and movers[-1][1] > 0 else (movers[0][0] if movers else "")
+    hero_line = (f"\nГЕРОЙ ДНЯ: {hero} — добавь 2-3 предложения, что это за проект "
+                 f"(сеть и назначение словами; БЕЗ дат, лет, цифр и цен, "
+                 f"ссылка /valuta/{hero}/)") if hero else ""
+    facts += y_line  # вчерашние цифры — тоже факты для самопроверки
     # график: BTC/ETH/SOL за окно (SVG, без зависимостей)
     from charts import svg_chart  # noqa
     chart = svg_chart([(s.upper(), win[s]) for s in ("bitcoin", "ethereum", "solana") if s in win],
@@ -384,7 +422,7 @@ def cmd_market(args):
         for g in range(2):  # вторая попытка — другим составом пула
             try:
                 out = chat([{"role": "system", "content": prompt},
-                            {"role": "user", "content": f"ФАКТЫ:\n{facts}{term_line}\nslug: {slug}\ntitle: {title}"}],
+                            {"role": "user", "content": f"ФАКТЫ:\n{facts}{y_line}{hero_line}{term_line}\nslug: {slug}\ntitle: {title}"}],
                            max_tokens=3500)
             except RuntimeError as e:
                 print(f"{lang}: генерация {g + 1} не удалась: {str(e)[:150]}")
