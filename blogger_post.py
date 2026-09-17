@@ -95,16 +95,23 @@ def md_to_html(md, lang="es"):
     return "".join(out)
 
 
-def create_post(lang, title, md_body, slug, labels=None, dry=False):
-    """Создать новый пост. Возвращает URL поста (или '[dry-run]' без секретов)."""
+def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more=None):
+    """Создать новый пост. Возвращает URL поста (или '[dry-run]' без секретов).
+
+    read_more: URL ссылки «Читать полностью →» (по умолчанию — корень сайта языка);
+    None — без ссылки (для Blogger-only обзоров без страницы на сайте).
+    """
     blog = BLOG_IDS.get(lang, "")
     site = SITE_URL.get(lang, SITE_URL["es"])
-    article_url = f"{site}/blog/{slug}/"
+    if read_more is None and slug:
+        read_more = f"{site}/blog/{slug}/"
     body_html = md_to_html(md_body, lang)
-    more = READ_MORE.get(lang, READ_MORE["es"])
-    content = (f"{body_html}<p><b><a href='{article_url}'>{more} →</a></b></p>")
+    if read_more:
+        more = READ_MORE.get(lang, READ_MORE["es"])
+        body_html += f"<p><b><a href='{read_more}'>{more} →</a></b></p>"
+    content = body_html
     if dry or not all([CID, CSEC, RTOK, blog]):
-        print(f"[dry-run] blog={lang} title={title}\n  → {article_url}")
+        print(f"[dry-run] blog={lang} title={title}" + (f"\n  → {read_more}" if read_more else ""))
         return "[dry-run]"
     payload = json.dumps({"kind": "blogger#post", "title": title, "content": content,
                           "labels": labels or ["RateScout"]}).encode()

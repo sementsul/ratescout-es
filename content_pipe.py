@@ -226,20 +226,30 @@ def cmd_dupcheck(args):
     return 0 if st in ("ok", "warn") else 2
 
 
-def cmd_selfcheck(args):
-    raw = open(args.file, encoding="utf-8").read()
-    title = (re.search(r"^title:\s*(.+)$", raw, re.M) or [None, args.file]).group(1)
+def selfcheck_text(raw, facts):
+    """Прогнать текст через ИИ-контролёр. Возвращает True при VERDICT: PASS."""
     slugs = sorted({s for s, _, _, _ in corpus_index()})
     out = chat([{"role": "system", "content": SELFCHECK_SYS.format(
                     corpus=corpus_titles(), slugs=", ".join(slugs[:200]),
-                    facts=args.facts or "нет (цифры запрещены)")},
+                    facts=facts or "нет (цифры запрещены)")},
                 {"role": "user", "content": raw[:6000]}],
                max_tokens=800)
     if not out:
-        return 1
+        return False
     print(out)
-    log({"action": "selfcheck", "file": args.file, "verdict": out.splitlines()[0] if out else ""})
-    return 0 if "VERDICT: PASS" in out else 2
+    return "VERDICT: PASS" in out
+
+
+def cmd_selfcheck_raw(raw, facts):
+    return selfcheck_text(raw, facts)
+
+
+def cmd_selfcheck(args):
+    raw = getattr(args, "_raw", "") or open(args.file, encoding="utf-8").read()
+    ok = selfcheck_text(raw, args.facts)
+    log({"action": "selfcheck", "file": getattr(args, "file", ""),
+         "verdict": "PASS" if ok else "FAIL"})
+    return 0 if ok else 2
 
 
 def cmd_publish(args):
@@ -287,6 +297,13 @@ def cmd_publish(args):
 
 
 def cmd_market(args):
+    """Обзор рынка сразу на все языки — новые посты в 4 Blogger-блога (Blogger-only).
+
+    По умолчанию БЕЗ страниц на сайте (--site включает и articles/ + ссылку).
+    На каждый язык: генерация из тех же ФАКТОВ → selfcheck → (с --yes) пост в блог.
+    Пауза 15с между языками — бережём free-лимиты OpenRouter.
+    """
+    import time as _t
     days = 1 if args.which == "daily" else 7
     period = "дневной" if days == 1 else "недельный"
     stats, movers = market_stats(days)
@@ -297,36 +314,56 @@ def cmd_market(args):
     dns = ", ".join(f"{s} {c:+.1f}%" for s, c in movers[:3])
     facts = f"Сегодня: {date.today().isoformat()}\n{stats}\nТоп роста: {ups}\nТоп падения: {dns}"
     today = date.today().isoformat()
-    if args.lang == "es":
-        slug = f"mercado-{today}" if days == 1 else f"mercado-semana-{today}"
-        title = f"Mercado en 24 horas: {today}" if days == 1 else "Mercado de la semana"
-    elif args.lang == "en":
-        slug = f"market-{today}" if days == 1 else f"market-week-{today}"
-        title = f"Market in 24h: {today}" if days == 1 else "Market of the week"
-    elif args.lang == "fr":
-        slug = f"marche-{today}" if days == 1 else f"marche-semaine-{today}"
-        title = f"Marché en 24h : {today}" if days == 1 else "Marché de la semaine"
-    else:
-        slug = f"rynok-{today}" if days == 1 else f"rynok-nedelya-{today}"
-        title = f"Рынок за сутки: {today}" if days == 1 else "Рынок за неделю"
-    prompt = MARKET_SYS.format(period=period, lang=args.lang, today=date.today().isoformat(), slug=slug)
-    out = chat([{"role": "system", "content": prompt},
-                {"role": "user", "content": f"ФАКТЫ:\n{facts}\nslug: {slug}\ntitle: {title}"}],
-               max_tokens=3500)
-    if not out:
+    names = {"es": ("mercado", "Mercado"), "en": ("market", "Market"),
+             "fr": ("marche", "Marché"), "ru": ("rynok", "Рынок")}
+    langs = [l.strip() for l in args.langs.split(",") if l.strip() in names]
+    if not langs:
+        print("нет языков (es,en,fr,ru)")
         return 1
-    os.makedirs(DRAFT_DIR, exist_ok=True)
-    p = os.path.join(DRAFT_DIR, f"{slug}.md")
-    open(p, "w", encoding="utf-8").write(out + "\n")
-    print(f"обзор → drafts/{slug}.md\nФАКТЫ были:\n{facts}")
-    # сразу самопроверка по тем же фактам
-    a2 = argparse.Namespace(file=p, facts=facts)
-    rc = cmd_selfcheck(a2)
-    if rc == 0 and args.yes:
-        a3 = argparse.Namespace(file=p, langs=args.lang, src_lang="ru" if args.lang == "ru" else args.lang,
-                                yes=True)
-        return cmd_publish(a3)
-    return rc
+    rc_all = 0
+    for i, lang in enumerate(langs):
+        base, _ = names[lang]
+        if days == 1:
+            slug = f"{base}-{today}"
+            title = {"es": f"Mercado en 24 horas: {today}", "en": f"Market in 24h: {today}",
+                     "fr": f"Marché en 24h : {today}", "ru": f"Рынок за сутки: {today}"}[lang]
+        else:
+            slug = f"{base}-semana-{today}" if lang in ("es", "fr") else (
+                f"{base}-week-{today}" if lang == "en" else f"{base}-nedelya-{today}")
+            title = {"es": "Mercado de la semana", "en": "Market of the week",
+                     "fr": "Marché de la semaine", "ru": "Рынок за неделю"}[lang]
+        prompt = MARKET_SYS.format(period=period, lang=lang, today=today, slug=slug)
+        print(f"=== {lang}: генерация… ===")
+        out = chat([{"role": "system", "content": prompt},
+                    {"role": "user", "content": f"ФАКТЫ:\n{facts}\nslug: {slug}\ntitle: {title}"}],
+                   max_tokens=3500)
+        if not out:
+            rc_all = 1
+            continue
+        body = out.split("---", 2)[2] if out.startswith("---") else out
+        if selfcheck_text(out, facts):
+            if args.site:
+                dest = ART_DIR if lang == "ru" else os.path.join(ART_DIR, lang)
+                if args.yes:
+                    os.makedirs(dest, exist_ok=True)
+                    open(os.path.join(dest, f"{slug}.md"), "w", encoding="utf-8").write(out + "\n")
+                read_more = None  # ссылка соберётся из slug в create_post
+            else:
+                from blogger_post import SITE_URL
+                read_more = SITE_URL.get(lang, SITE_URL["es"]) + "/" if args.yes else None
+            if args.yes:
+                url = create_post(lang, title, body, slug if args.site else "",
+                                  labels=["RateScout", period], dry=False, read_more=read_more)
+                log({"action": f"market-{args.which}", "lang": lang, "slug": slug, "blogger": url})
+            else:
+                create_post(lang, title, body, "", dry=True)
+                print(f"[dry-run] {lang}: черновик OK, повтори с --yes для постинга")
+        else:
+            print(f"{lang}: selfcheck FAIL — в блог не идёт")
+            rc_all = 2
+        if i < len(langs) - 1:
+            _t.sleep(15)
+    return rc_all
 
 
 def main():
@@ -344,8 +381,10 @@ def main():
     p.add_argument("--src-lang", default="ru")
     p.add_argument("--yes", action="store_true")
     for w in ("market-daily", "market-weekly"):
-        m = sub.add_parser(w, help="ИИ-обзор рынка")
-        m.add_argument("--lang", default="es")
+        m = sub.add_parser(w, help="ИИ-обзор рынка в 4 блога")
+        m.add_argument("--langs", default="es,en,fr,ru")
+        m.add_argument("--site", action="store_true",
+                       help="плюс страницы на сайте в articles/ (по умолчанию Blogger-only)")
         m.add_argument("--yes", action="store_true")
     a = ap.parse_args()
     if a.cmd == "draft-next":
