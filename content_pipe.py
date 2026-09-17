@@ -334,33 +334,43 @@ def cmd_market(args):
                      "fr": "Marché de la semaine", "ru": "Рынок за неделю"}[lang]
         prompt = MARKET_SYS.format(period=period, lang=lang, today=today, slug=slug)
         print(f"=== {lang}: генерация… ===")
-        out = chat([{"role": "system", "content": prompt},
-                    {"role": "user", "content": f"ФАКТЫ:\n{facts}\nslug: {slug}\ntitle: {title}"}],
-                   max_tokens=3500)
-        if not out:
-            rc_all = 1
-            continue
-        body = out.split("---", 2)[2] if out.startswith("---") else out
-        if selfcheck_text(out, facts):
-            if args.site:
-                dest = ART_DIR if lang == "ru" else os.path.join(ART_DIR, lang)
-                if args.yes:
-                    os.makedirs(dest, exist_ok=True)
-                    open(os.path.join(dest, f"{slug}.md"), "w", encoding="utf-8").write(out + "\n")
-                read_more = None  # ссылка соберётся из slug в create_post
-            else:
-                from blogger_post import SITE_URL
-                read_more = SITE_URL.get(lang, SITE_URL["es"]) + "/" if args.yes else None
-            if args.yes:
-                url = create_post(lang, title, body, slug if args.site else "",
-                                  labels=["RateScout", period], dry=False, read_more=read_more)
-                log({"action": f"market-{args.which}", "lang": lang, "slug": slug, "blogger": url})
-            else:
-                create_post(lang, title, body, "", dry=True)
-                print(f"[dry-run] {lang}: черновик OK, повтори с --yes для постинга")
-        else:
+        out, passed = "", False
+        for g in range(2):  # вторая попытка — другим составом пула
+            try:
+                out = chat([{"role": "system", "content": prompt},
+                            {"role": "user", "content": f"ФАКТЫ:\n{facts}\nslug: {slug}\ntitle: {title}"}],
+                           max_tokens=3500)
+            except RuntimeError as e:
+                print(f"{lang}: генерация {g + 1} не удалась: {str(e)[:150]}")
+                out = ""
+            if out and selfcheck_text(out, facts):
+                passed = True
+                break
+            print(f"{lang}: попытка {g + 1} не прошла ворота, повторяю…")
+            _t.sleep(20)
+        if not passed:
             print(f"{lang}: selfcheck FAIL — в блог не идёт")
             rc_all = 2
+            if i < len(langs) - 1:
+                _t.sleep(15)
+            continue
+        body = out.split("---", 2)[2] if out.startswith("---") else out
+        if args.site:
+            dest = ART_DIR if lang == "ru" else os.path.join(ART_DIR, lang)
+            if args.yes:
+                os.makedirs(dest, exist_ok=True)
+                open(os.path.join(dest, f"{slug}.md"), "w", encoding="utf-8").write(out + "\n")
+            read_more = None  # ссылка соберётся из slug в create_post
+        else:
+            from blogger_post import SITE_URL
+            read_more = SITE_URL.get(lang, SITE_URL["es"]) + "/" if args.yes else None
+        if args.yes:
+            url = create_post(lang, title, body, slug if args.site else "",
+                              labels=["RateScout", period], dry=False, read_more=read_more)
+            log({"action": f"market-{args.which}", "lang": lang, "slug": slug, "blogger": url})
+        else:
+            create_post(lang, title, body, "", dry=True)
+            print(f"[dry-run] {lang}: черновик OK, повтори с --yes для постинга")
         if i < len(langs) - 1:
             _t.sleep(15)
     return rc_all

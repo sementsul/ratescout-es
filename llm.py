@@ -74,19 +74,28 @@ def chat(messages, model=None, max_tokens=2000, temperature=0.7, timeout=120):
         headers["X-Title"] = app
     models = [model or DEFAULT_MODEL] + [m for m in FALLBACK_MODELS if m != (model or DEFAULT_MODEL)]
     last_err = "неизвестная ошибка"
+    debug = os.environ.get("LLM_DEBUG", "")
     for mi, m in enumerate(models):
         for attempt in range(3):
             try:
                 data = _post(messages, m, max_tokens, temperature, timeout, headers)
-                text = (data.get("choices") or [{}])[0].get("message", {}).get("content")
+                msg = (data.get("choices") or [{}])[0].get("message", {})
+                text = msg.get("content")
+                if debug:
+                    print(f"llm-debug: модель #{mi} попытка {attempt}: "
+                          f"keys={list(data.keys())} "
+                          f"msg_keys={list(msg.keys())} "
+                          f"content_type={type(text).__name__} "
+                          f"content_len={len(text) if isinstance(text, str) else 0} "
+                          f"finish={((data.get('choices') or [{}])[0].get('finish_reason'))}")
                 if text and text.strip():
                     return text.strip()
-                last_err = f"{m}: пустой ответ"
+                last_err = f"модель #{mi}: пустой ответ"
                 break  # пустой ответ ретраями не лечится — следующая модель
             except Exception as e:
-                last_err = f"{m}: {e}"
+                last_err = f"модель #{mi}: {e}"
                 time.sleep(5 * (attempt + 1))
-        print(f"llm: модель {m} не ответила ({last_err[:120]}), пробую следующую…")
+        print(f"llm: модель #{mi} не ответила ({last_err[:120]}), пробую следующую…")
     raise RuntimeError(f"OpenRouter: все модели заняты/недоступны. Последняя ошибка: {last_err[:300]}")
 
 
