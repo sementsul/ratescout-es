@@ -2221,16 +2221,37 @@ def _missing_set(lg):
     return globals().get(_NO_MISSING.get(lg, ""), set())
 
 
+# Языковая сеть RateScout: кросс-доменный hreflang ставим ТОЛЬКО на страницы,
+# проверенно существующие на всех доменах (иначе GSC-ошибки + 404).
+XDOM_SITES = {"ru": "https://ratescout.ru", "en": "https://ratescout.ru/en",
+              "es": "https://ratescout.oc.com.ar", "fr": "https://ratescout.info.gf"}
+XDOM_PATHS = {"/", "/blog/", "/o-servise/", "/aml/", "/raskrytie/",
+              "/redakciya/", "/politika/", "/usloviya/"}
+
+
 def hreflangs(path):
     # Не рекламируем alternate на язык, для которого страницы нет (иначе GSC-ошибки + 404).
     tags = []
+    seen = set()
     for lg in LANGS:
         if path in _missing_set(lg):
             continue
         tags.append(f'<link rel="alternate" hreflang="{LOCALE[lg]}" href="{BASE_URL}{PREF[lg]}{path}">')
+        seen.add(LOCALE[lg])
     # кросс-домен: FR-версия на ratescout.info.gf (только для RU/EN-сборок, где страница там есть)
-    if LANGS and LANGS[0] in ("ru", "en") and path not in NO_FR:
+    if LANGS and LANGS[0] in ("ru", "en") and path not in NO_FR and "fr" not in seen:
         tags.append(f'<link rel="alternate" hreflang="fr" href="{FR_BASE}{path}">')
+        seen.add("fr")
+    # кросс-домен на всю сеть (только общие страницы из XDOM_PATHS)
+    if path in XDOM_PATHS:
+        for lg, base in XDOM_SITES.items():
+            if lg in LANGS or LOCALE[lg] in seen:
+                continue
+            # FR есть не везде (/blog/ и др. в NO_FR) — уважаем NO_FR
+            if lg == "fr" and path in NO_FR:
+                continue
+            tags.append(f'<link rel="alternate" hreflang="{LOCALE[lg]}" href="{base}{path}">')
+            seen.add(LOCALE[lg])
     default_lg = next((lg for lg in LANGS if path not in _missing_set(lg)), LANGS[0])
     default = f"{BASE_URL}{PREF[default_lg]}{path}"
     tags.append(f'<link rel="alternate" hreflang="x-default" href="{default}">')
