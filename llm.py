@@ -21,15 +21,16 @@ API_URL = "https://openrouter.ai/api/v1/chat/completions"
 #   nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free — ок
 # Мёртвые на 2026-09-17: qwen/qwen3-next-80b-*:free (404), inkling-small (403 agentic-only),
 #   liquid/lfm, cohere/north-mini-code (пустой content).
-DEFAULT_MODEL = os.environ.get(
-    "OPENROUTER_MODEL", "nex-agi/nex-n2.5-mini:free"
+# Пустая переменная окружения = не задана (GitHub подставляет "" за отсутствующий секрет).
+DEFAULT_MODEL = (
+    os.environ.get("OPENROUTER_MODEL") or "nex-agi/nex-n2.5-mini:free"
 )
 FALLBACK_MODELS = [
     m.strip()
-    for m in os.environ.get(
-        "OPENROUTER_FALLBACKS",
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,"
-        "nvidia/nemotron-3-super-120b-a12b:free",
+    for m in (
+        os.environ.get("OPENROUTER_FALLBACKS")
+        or "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,"
+        "nvidia/nemotron-3-super-120b-a12b:free"
     ).split(",")
     if m.strip()
 ]

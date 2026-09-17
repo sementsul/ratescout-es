@@ -95,6 +95,22 @@ def md_to_html(md, lang="es"):
     return "".join(out)
 
 
+def find_post_by_title(blog, token, title):
+    """URL существующего поста с ТОЧНО таким заголовком (защита от дублей при ретраях)."""
+    q = urllib.parse.urlencode({"q": title, "maxResults": 5, "fields": "items(title,url)"})
+    req = urllib.request.Request(
+        f"https://www.googleapis.com/blogger/v3/blogs/{blog}/posts?{q}",
+        headers={"Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            for it in json.load(r).get("items", []):
+                if it.get("title", "").strip() == title.strip():
+                    return it.get("url", "")
+    except Exception:  # noqa: BLE001 — поиск необязателен, идём создавать
+        pass
+    return ""
+
+
 def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more=None):
     """Создать новый пост. Возвращает URL поста (или '[dry-run]' без секретов).
 
@@ -116,6 +132,10 @@ def create_post(lang, title, md_body, slug="", labels=None, dry=False, read_more
     payload = json.dumps({"kind": "blogger#post", "title": title, "content": content,
                           "labels": labels or ["RateScout"]}).encode()
     token = access_token()
+    dup = find_post_by_title(blog, token, title)
+    if dup:
+        print(f"[{lang}] такой пост уже есть, дубль не создаю: {dup}")
+        return dup
     url = f"https://www.googleapis.com/blogger/v3/blogs/{blog}/posts/"
     req = urllib.request.Request(url, data=payload, method="POST",
                                  headers={"Authorization": f"Bearer {token}",
