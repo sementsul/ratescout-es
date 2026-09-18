@@ -60,5 +60,44 @@
   "action": "fixup-brief",
   "lang": "ru",
   "blogger": "https://blogger.ratescout.ru/2026/09/blog-post.html"
+ },
+ {
+  "at": "2026-09-18T09:37:42+00:00",
+  "action": "market-daily",
+  "lang": "es",
+  "slug": "mercado-2026-09-18",
+  "blogger": "https://ratescout-es.blogspot.com/2026/09/mercado-en-24-horas-2026-09-18.html"
+ },
+ {
+  "at": "2026-09-18T09:37:42+00:00",
+  "action": "market-live",
+  "lang": "es",
+  "blogger": "https://ratescout-es.blogspot.com/2026/09/mercado-hoy-resumen-ratescout.html"
+ },
+ {
+  "at": "2026-09-18T09:39:03+00:00",
+  "action": "market-daily",
+  "lang": "en",
+  "slug": "market-2026-09-18",
+  "blogger": "https://ratescouten.blogspot.com/2026/09/market-in-24h-2026-09-18.html"
+ },
+ {
+  "at": "2026-09-18T09:39:04+00:00",
+  "action": "market-live",
+  "lang": "en",
+  "blogger": "https://ratescouten.blogspot.com/2026/09/market-today-ratescout-brief.html"
+ },
+ {
+  "at": "2026-09-18T09:51:37+00:00",
+  "action": "market-daily",
+  "lang": "fr",
+  "slug": "marche-2026-09-18",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/09/marche-en-24h-2026-09-18.html"
+ },
+ {
+  "at": "2026-09-18T09:51:37+00:00",
+  "action": "market-live",
+  "lang": "fr",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/09/marche-du-jour-resume-ratescout.html"
  }
 ]
