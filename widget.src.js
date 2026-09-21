@@ -19,14 +19,14 @@
   var LINK = "color:#0a66c2;text-decoration:none;font-weight:600";
   var ATTR = "display:block;margin-top:6px;font-size:11px;color:#98a2b3;text-decoration:none";
   var INP = "width:100%;box-sizing:border-box;padding:6px 8px;margin:4px 0;border:1px solid #d0d5dd;border-radius:6px;font:inherit;color:#111;background:#fff";
-  var OPEN = "Обменять →";
-  var CRED = "Курсы: RateScout";
-  var NODATA = "Нет прямого направления";
+  var OPEN = "{{OPEN}}";
+  var CRED = "{{CRED}}";
+  var NODATA = "{{NODATA}}";
 
   function num(v) { v = parseFloat(String(v).replace(/\s/g, "")); return isNaN(v) ? 0 : v; }
   function fmt(v) {
-    if (v >= 1000) return v.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
-    if (v >= 1) return v.toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+    if (v >= 1000) return v.toLocaleString("{{LOCALE}}", { maximumFractionDigits: 0 });
+    if (v >= 1) return v.toLocaleString("{{LOCALE}}", { maximumFractionDigits: 2 });
     return v.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
   }
   function rateBox(fromT, toT, rateStr, url) {
@@ -53,7 +53,7 @@
     if (!FULL) return;
     var slugs = Object.keys(FULL.cur).sort(function (a, b) { return FULL.cur[a].n.localeCompare(FULL.cur[b].n); });
     var card = el("div", CARD);
-    card.appendChild(el("div", LBL, "Конвертер RateScout"));
+    card.appendChild(el("div", LBL, "{{CONV}}"));
     var amt = el("input", INP); amt.type = "number"; amt.min = "0"; amt.step = "any"; amt.value = "1";
     function mkSel(def) {
       var s = el("select", INP);

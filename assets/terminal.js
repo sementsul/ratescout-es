@@ -9,24 +9,26 @@
   var bar = document.getElementById("termBar");
   if (!canvas || !bar) return;
 
-  var EN = (document.documentElement.getAttribute("lang") || "ru").slice(0, 2) === "en";
-  function T(ru, en) { return EN ? en : ru; }
+  var LANG = (document.documentElement.getAttribute("lang") || "ru").slice(0, 2);
+  var EN = LANG === "en";
+  function T(ru, en, es) { return LANG === "es" ? (es === undefined ? en : es) : (EN ? en : ru); }
+  function LOC() { return LANG === "es" ? "es-AR" : (EN ? "en-US" : "ru-RU"); }
 
   // ---------------- данные и утилиты ----------------
   var DATA = null;
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function dnum(s) { var p = s.slice(0, 10).split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000 + (s.length > 10 ? (+s.slice(11, 13)) / 24 : 0); }
   function fmtDate(s) { return s.slice(8, 10) + "." + s.slice(5, 7); }
-  function fmtNum(v) { if (v == null || isNaN(v)) return "—"; var a = Math.abs(v); if (a >= 1000) return Math.round(v).toLocaleString("ru-RU"); if (a >= 1) return v.toFixed(2); if (a >= 0.01) return v.toFixed(4); return v.toPrecision(3); }
+  function fmtNum(v) { if (v == null || isNaN(v)) return "—"; var a = Math.abs(v); if (a >= 1000) return Math.round(v).toLocaleString(LOC()); if (a >= 1) return v.toFixed(2); if (a >= 0.01) return v.toFixed(4); return v.toPrecision(3); }
   function fmtPct(p) { if (p == null || isNaN(p)) return ""; return (p >= 0 ? "+" : "") + p.toFixed(1) + "%"; }
   function name(s) { return (DATA.cur[s] || {}).n || s; }
   function ticker(s) { return (DATA.cur[s] || {}).t || ""; }
 
   var COLORS = ["#3399dd", "#33cc99", "#cc9944", "#cc5588", "#7a5cd0", "#5cc0d0", "#d05c8a", "#9ad04a",
                 "#d0a24a", "#4ad0a2", "#d04a4a", "#4a7ad0", "#cdd04a", "#d04acd"];
-  var RANGES = [{ k: 7, l: T("1Н", "1W") }, { k: 30, l: T("1М", "1M") }, { k: 90, l: T("3М", "3M") },
-                { k: 180, l: T("6М", "6M") }, { k: 365, l: T("1Г", "1Y") }, { k: 1095, l: T("3Г", "3Y") },
-                { k: 1825, l: T("5Л", "5Y") }, { k: 0, l: T("Всё", "All") }];
+  var RANGES = [{ k: 7, l: T("1Н", "1W", "1S") }, { k: 30, l: T("1М", "1M", "1M") }, { k: 90, l: T("3М", "3M", "3M") },
+                { k: 180, l: T("6М", "6M", "6M") }, { k: 365, l: T("1Г", "1Y", "1A") }, { k: 1095, l: T("3Г", "3Y", "3A") },
+                { k: 1825, l: T("5Л", "5Y", "5A") }, { k: 0, l: T("Всё", "All", "Todo") }];
   var TOP_CRYPTO = ["bitcoin", "ethereum", "ripple", "litecoin", "dogecoin", "monero", "tron", "bitcoin-cash", "dash", "zcash", "cardano", "solana", "polkadot"];
   var STABLE_T = ["USDT", "USDC", "DAI", "BUSD", "TUSD", "USDP", "FDUSD", "USDD"];
   var FIAT_T = ["USD", "EUR", "RUB", "GBP", "UAH", "KZT", "TRY", "CNY", "JPY", "BYN"];
@@ -135,12 +137,12 @@
   // навесить клики «открыть» на элементы [data-cur] и [data-pair="a|b"]
   function wireOpens(el) {
     Array.prototype.forEach.call(el.querySelectorAll("[data-cur]"), function (n) {
-      n.title = T("Открыть на сайте", "Open on site"); n.classList.add("op-link");
+      n.title = T("Открыть на сайте", "Open on site", "Abrir en el sitio"); n.classList.add("op-link");
       n.addEventListener("click", function (e) { e.stopPropagation(); openUrl(curUrl(n.getAttribute("data-cur"))); });
     });
     Array.prototype.forEach.call(el.querySelectorAll("[data-pair]"), function (n) {
       var ab = n.getAttribute("data-pair").split("|");
-      n.title = pairHasPage(ab[0], ab[1]) ? T("Открыть пару на сайте", "Open pair on site") : T("Открыть на BestChange (реф.)", "Open on BestChange (ref)");
+      n.title = pairHasPage(ab[0], ab[1]) ? T("Открыть пару на сайте", "Open pair on site", "Abrir el par en el sitio") : T("Открыть на BestChange (реф.)", "Open on BestChange (ref)", "Abrir en BestChange (ref.)");
       n.classList.add("op-link");
       n.addEventListener("click", function (e) { e.stopPropagation(); openUrl(pairUrl(ab[0], ab[1])); });
     });
@@ -162,7 +164,7 @@
   // валюта уже на активном графике?
   function inActiveChart(slug) { var c = getActiveChart(); return !!(c && c.cfg.cur && c.cfg.cur.indexOf(slug) >= 0); }
   // значок «на активном графике»
-  function onMark(slug) { return (chartableCur(slug) && inActiveChart(slug)) ? " <span class='on-chart' title='" + T("на графике", "on chart") + "'>●</span>" : ""; }
+  function onMark(slug) { return (chartableCur(slug) && inActiveChart(slug)) ? " <span class='on-chart' title='" + T("на графике", "on chart", "en el gráfico") + "'>●</span>" : ""; }
   // тумблер: нет на активном графике → добавить; есть → убрать (если графика нет — создать)
   function addToActiveChart(slug) {
     if (!DATA.series[slug]) return;
@@ -181,12 +183,12 @@
   // навесить «добавить в активный график» на [data-add] (валюта) и [data-addpair] (пара)
   function wireAdd(el) {
     Array.prototype.forEach.call(el.querySelectorAll("[data-add]"), function (n) {
-      n.title = T("Добавить в активный график", "Add to active chart"); n.classList.add("op-link");
+      n.title = T("Добавить в активный график", "Add to active chart", "Agregar al gráfico activo"); n.classList.add("op-link");
       n.addEventListener("click", function (e) { e.stopPropagation(); addToActiveChart(n.getAttribute("data-add")); });
     });
     Array.prototype.forEach.call(el.querySelectorAll("[data-addpair]"), function (n) {
       var ab = n.getAttribute("data-addpair").split("|");
-      n.title = T("Открыть пару в активном графике", "Open pair in active chart"); n.classList.add("op-link");
+      n.title = T("Открыть пару в активном графике", "Open pair in active chart", "Abrir el par en el gráfico activo"); n.classList.add("op-link");
       n.addEventListener("click", function (e) { e.stopPropagation(); setActiveRatio(ab[0], ab[1]); });
     });
   }
@@ -245,33 +247,33 @@
         .map(function (s) { return '<option value="' + esc(s) + '">' + esc(ticker(s) || name(s)) + "</option>"; }).join("");
     bar.innerHTML =
       '<div class="tb-grp">' +
-        '<button class="tb-btn tb-add" data-t="chart">+ ' + T("График", "Chart") + "</button>" +
+        '<button class="tb-btn tb-add" data-t="chart">+ ' + T("График", "Chart", "Gráfico") + "</button>" +
         '<button class="tb-btn tb-add" data-t="watch">+ Watchlist</button>' +
-        '<button class="tb-btn tb-add" data-t="movers">+ ' + T("Муверы", "Movers") + "</button>" +
-        '<button class="tb-btn tb-add" data-t="heat">+ ' + T("Хитмап", "Heatmap") + "</button>" +
-        '<button class="tb-btn tb-add" data-t="screen">+ ' + T("Скринер", "Screener") + "</button>" +
-        '<button class="tb-btn tb-add" data-t="demand">+ ' + T("Спрос", "Demand") + "</button>" +
+        '<button class="tb-btn tb-add" data-t="movers">+ ' + T("Муверы", "Movers", "Movimientos") + "</button>" +
+        '<button class="tb-btn tb-add" data-t="heat">+ ' + T("Хитмап", "Heatmap", "Mapa de calor") + "</button>" +
+        '<button class="tb-btn tb-add" data-t="screen">+ ' + T("Скринер", "Screener", "Screener") + "</button>" +
+        '<button class="tb-btn tb-add" data-t="demand">+ ' + T("Спрос", "Demand", "Demanda") + "</button>" +
       "</div>" +
       '<div class="tb-grp">' +
-        '<label class="tb-l">' + T("Оценка в", "Valued in") + ': <select class="tb-sel" id="tbBase">' + baseOpts + "</select></label>" +
-        '<label class="tb-l">' + T("Раскладка", "Layout") + ': <select class="tb-sel" id="tbLayout">' +
+        '<label class="tb-l">' + T("Оценка в", "Valued in", "Valorado en") + ': <select class="tb-sel" id="tbBase">' + baseOpts + "</select></label>" +
+        '<label class="tb-l">' + T("Раскладка", "Layout", "Diseño") + ': <select class="tb-sel" id="tbLayout">' +
           '<option value="">—</option>' +
-          '<option value="overview">' + T("Обзор рынка", "Market overview") + "</option>" +
-          '<option value="charts2">' + T("2 графика", "2 charts") + "</option>" +
-          '<option value="charts4">' + T("4 графика", "4 charts") + "</option>" +
-          '<option value="watchbig">' + T("Watchlist + график", "Watchlist + chart") + "</option>" +
+          '<option value="overview">' + T("Обзор рынка", "Market overview", "Resumen del mercado") + "</option>" +
+          '<option value="charts2">' + T("2 графика", "2 charts", "2 gráficos") + "</option>" +
+          '<option value="charts4">' + T("4 графика", "4 charts", "4 gráficos") + "</option>" +
+          '<option value="watchbig">' + T("Watchlist + график", "Watchlist + chart", "Watchlist + gráfico") + "</option>" +
         "</select></label>" +
-        '<label class="tb-l">' + T("Тема", "Theme") + ': <select class="tb-sel" id="tbTheme">' +
+        '<label class="tb-l">' + T("Тема", "Theme", "Tema") + ': <select class="tb-sel" id="tbTheme">' +
           '<option value="bloomberg">Bloomberg</option>' +
           '<option value="dos">DOS-cyan</option>' +
-          '<option value="dark">' + T("Тёмная", "Dark") + "</option>" +
+          '<option value="dark">' + T("Тёмная", "Dark", "Oscuro") + "</option>" +
         "</select></label>" +
       "</div>" +
       '<div class="tb-grp tb-right">' +
-        '<button class="tb-btn' + (STATE.tiled ? " on" : "") + '" id="tbTile">⊞ ' + T("Сетка", "Tile") + "</button>" +
-        '<button class="tb-btn" id="tbFull">⛶ ' + T("Во весь экран", "Fullscreen") + "</button>" +
-        '<button class="tb-btn" id="tbShare">' + T("Ссылка", "Link") + "</button>" +
-        '<button class="tb-btn" id="tbReset">' + T("Сброс", "Reset") + "</button>" +
+        '<button class="tb-btn' + (STATE.tiled ? " on" : "") + '" id="tbTile">⊞ ' + T("Сетка", "Tile", "Mosaico") + "</button>" +
+        '<button class="tb-btn" id="tbFull">⛶ ' + T("Во весь экран", "Fullscreen", "Pantalla completa") + "</button>" +
+        '<button class="tb-btn" id="tbShare">' + T("Ссылка", "Link", "Enlace") + "</button>" +
+        '<button class="tb-btn" id="tbReset">' + T("Сброс", "Reset", "Restablecer") + "</button>" +
       "</div>";
     Array.prototype.forEach.call(bar.querySelectorAll(".tb-add"), function (b) {
       b.addEventListener("click", function () { addPanel(b.getAttribute("data-t")); });
@@ -283,17 +285,17 @@
     bar.querySelector("#tbLayout").addEventListener("change", function () { if (this.value) { applyLayout(this.value); this.value = ""; } });
     bar.querySelector("#tbTile").addEventListener("click", function () { STATE.tiled = !STATE.tiled; this.classList.toggle("on", STATE.tiled); renderAll(); saveWS(); });
     bar.querySelector("#tbReset").addEventListener("click", function () {
-      if (!confirm(T("Сбросить раскладку к стандартной?", "Reset layout to default?"))) return;
+      if (!confirm(T("Сбросить раскладку к стандартной?", "Reset layout to default?", "¿Restablecer el diseño?"))) return;
       try { localStorage.removeItem(LS_KEY); } catch (e) {}
       var ws = defaultWorkspace(); STATE.theme = ws.theme;
       STATE.panels = ws.panels.map(function (p) { p.id = STATE.seq++; return p; });
       setTheme(STATE.theme); renderAll(); saveWS();
     });
     var fb = bar.querySelector("#tbFull");
-    if (fb) { fb.addEventListener("click", toggleFull); fb.textContent = (isFull() ? "⤢ " + T("Свернуть", "Exit") : "⛶ " + T("Во весь экран", "Fullscreen")); }
+    if (fb) { fb.addEventListener("click", toggleFull); fb.textContent = (isFull() ? "⤢ " + T("Свернуть", "Exit", "Salir") : "⛶ " + T("Во весь экран", "Fullscreen", "Pantalla completa")); }
     bar.querySelector("#tbShare").addEventListener("click", function (e) {
       saveWS(); var btn = e.target, old = btn.textContent;
-      var done = function () { btn.textContent = T("скопировано ✓", "copied ✓"); setTimeout(function () { btn.textContent = old; }, 1400); };
+      var done = function () { btn.textContent = T("скопировано ✓", "copied ✓", "copiado ✓"); setTimeout(function () { btn.textContent = old; }, 1400); };
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(location.href).then(done, done); else done();
     });
   }
@@ -314,7 +316,7 @@
   function onFullChange() {
     var fe = fsEl();
     var b = bar.querySelector("#tbFull");
-    if (b) b.textContent = (fe === root ? "⤢ " + T("Свернуть", "Exit") : "⛶ " + T("Во весь экран", "Fullscreen"));
+    if (b) b.textContent = (fe === root ? "⤢ " + T("Свернуть", "Exit", "Salir") : "⛶ " + T("Во весь экран", "Fullscreen", "Pantalla completa"));
     root.classList.toggle("term-full", fe === root);
     var winFullEl = (fe && fe.classList && fe.classList.contains("term-win")) ? fe : null;
     Array.prototype.forEach.call(canvas.querySelectorAll(".term-win"), function (w) {
@@ -336,7 +338,7 @@
   function availH() { return isFull() ? Math.max(400, (window.innerHeight || 800) - (bar.offsetHeight || 44) - 20) : 560; }
 
   // ---------------- панели ----------------
-  var PTITLE = { chart: T("График", "Chart"), watch: "Watchlist", movers: T("Муверы", "Movers"), heat: T("Тепловая карта", "Heatmap"), screen: T("Скринер", "Screener"), demand: T("Спрос из поиска", "Search demand") };
+  var PTITLE = { chart: T("График", "Chart", "Gráfico"), watch: "Watchlist", movers: T("Муверы", "Movers", "Movimientos"), heat: T("Тепловая карта", "Heatmap", "Mapa de calor"), screen: T("Скринер", "Screener", "Screener"), demand: T("Спрос из поиска", "Search demand", "Demanda de búsqueda") };
   function nextPos() { var n = STATE.panels.length; return [24 + (n % 4) * 28, 24 + (n % 4) * 28, 440, 300]; }
   function addPanel(t) {
     var cfg;
@@ -419,7 +421,7 @@
     }
   }
   function buildTileCross() {
-    crossEl = document.createElement("div"); crossEl.className = "tile-cross"; crossEl.title = T("Тяните — размеры окон", "Drag to resize windows");
+    crossEl = document.createElement("div"); crossEl.className = "tile-cross"; crossEl.title = T("Тяните — размеры окон", "Drag to resize windows", "Arrastrá — tamaño de ventanas");
     canvas.appendChild(crossEl);
     crossEl.addEventListener("pointerdown", function (e) {
       e.preventDefault(); e.stopPropagation();
@@ -455,12 +457,12 @@
       '<header class="win-h"><span class="win-t">' + esc(PTITLE[p.t]) + "</span>" +
         '<span class="win-ctl">' + panelControls(p) + "</span>" +
         '<span class="win-tools">' +
-          '<button class="win-full" title="' + T("Во весь экран", "Fullscreen") + '">⛶</button>' +
-          '<button class="win-x" title="' + T("Закрыть", "Close") + '">✕</button>' +
+          '<button class="win-full" title="' + T("Во весь экран", "Fullscreen", "Pantalla completa") + '">⛶</button>' +
+          '<button class="win-x" title="' + T("Закрыть", "Close", "Cerrar") + '">✕</button>' +
         "</span>" +
       "</header>" +
       '<div class="win-body"></div>' +
-      (isMobile() ? "" : '<div class="win-rz" title="' + T("Тянуть — размер", "Drag to resize") + '"></div>');
+      (isMobile() ? "" : '<div class="win-rz" title="' + T("Тянуть — размер", "Drag to resize", "Arrastrar — tamaño") + '"></div>');
     wirePanel(p, el);
     return el;
   }
@@ -468,27 +470,27 @@
   // компактные контролы в шапке панели
   function panelControls(p) {
     if (p.t === "chart") {
-      return '<button class="win-b win-pick" title="' + T("Выбрать валюты", "Pick currencies") + '">◧ ' + T("Валюты", "Currencies") + " (" + p.cfg.cur.length + ")</button>" +
+      return '<button class="win-b win-pick" title="' + T("Выбрать валюты", "Pick currencies", "Elegir monedas") + '">◧ ' + T("Валюты", "Currencies", "Monedas") + " (" + p.cfg.cur.length + ")</button>" +
         '<select class="win-s win-type">' +
-          '<option value="line"' + (p.cfg.type === "line" ? " selected" : "") + ">" + T("Линии", "Lines") + "</option>" +
-          '<option value="candle"' + (p.cfg.type === "candle" ? " selected" : "") + ">" + T("Свечи", "Candles") + "</option>" +
+          '<option value="line"' + (p.cfg.type === "line" ? " selected" : "") + ">" + T("Линии", "Lines", "Líneas") + "</option>" +
+          '<option value="candle"' + (p.cfg.type === "candle" ? " selected" : "") + ">" + T("Свечи", "Candles", "Velas") + "</option>" +
           '<option value="ratio"' + (p.cfg.type === "ratio" ? " selected" : "") + ">A/B</option>" +
         "</select>" +
         '<label class="win-log"><input type="checkbox" class="win-logc"' + (p.cfg.log ? " checked" : "") + "> log</label>" +
         rangeTabs(p.cfg.range);
     }
     if (p.t === "watch" || p.t === "heat") {
-      return '<button class="win-b win-pick" title="' + T("Выбрать валюты", "Pick currencies") + '">◧ ' + T("Валюты", "Currencies") + " (" + panelSlugs(p).length + ")</button>" +
+      return '<button class="win-b win-pick" title="' + T("Выбрать валюты", "Pick currencies", "Elegir monedas") + '">◧ ' + T("Валюты", "Currencies", "Monedas") + " (" + panelSlugs(p).length + ")</button>" +
         '<select class="win-s win-grp">' +
-          '<option value="all"' + (!p.cfg.cur && p.cfg.grp === "all" ? " selected" : "") + ">" + T("Все валюты", "All currencies") + "</option>" +
-          '<option value="top"' + (!p.cfg.cur && p.cfg.grp === "top" ? " selected" : "") + ">" + T("Топ-крипта", "Top crypto") + "</option>" +
-          '<option value="stable"' + (!p.cfg.cur && p.cfg.grp === "stable" ? " selected" : "") + ">" + T("Стейблы", "Stables") + "</option>" +
-          '<option value="fiat"' + (!p.cfg.cur && p.cfg.grp === "fiat" ? " selected" : "") + ">" + T("Фиат", "Fiat") + "</option>" +
-          (p.cfg.cur && p.cfg.cur.length ? '<option value="" selected>' + T("свой набор", "custom") + "</option>" : "") +
+          '<option value="all"' + (!p.cfg.cur && p.cfg.grp === "all" ? " selected" : "") + ">" + T("Все валюты", "All currencies", "Todas las monedas") + "</option>" +
+          '<option value="top"' + (!p.cfg.cur && p.cfg.grp === "top" ? " selected" : "") + ">" + T("Топ-крипта", "Top crypto", "Top cripto") + "</option>" +
+          '<option value="stable"' + (!p.cfg.cur && p.cfg.grp === "stable" ? " selected" : "") + ">" + T("Стейблы", "Stables", "Stables") + "</option>" +
+          '<option value="fiat"' + (!p.cfg.cur && p.cfg.grp === "fiat" ? " selected" : "") + ">" + T("Фиат", "Fiat", "Fiat") + "</option>" +
+          (p.cfg.cur && p.cfg.cur.length ? '<option value="" selected>' + T("свой набор", "custom", "personalizado") + "</option>" : "") +
         "</select>" + (p.t === "heat" ? baseSelect(p) : "") + rangeTabs(p.cfg.range);
     }
     if (p.t === "movers") {
-      return '<button class="win-b win-pick" title="' + T("Выбрать валюты", "Pick currencies") + '">◧ ' + T("Валюты", "Currencies") + " (" + (p.cfg.cur && p.cfg.cur.length ? p.cfg.cur.length : T("все", "all")) + ")</button>" + rangeTabs(p.cfg.range);
+      return '<button class="win-b win-pick" title="' + T("Выбрать валюты", "Pick currencies", "Elegir monedas") + '">◧ ' + T("Валюты", "Currencies", "Monedas") + " (" + (p.cfg.cur && p.cfg.cur.length ? p.cfg.cur.length : T("все", "all", "todas")) + ")</button>" + rangeTabs(p.cfg.range);
     }
     if (p.t === "screen") {
       var q = "";
@@ -499,17 +501,17 @@
         q = '<label class="win-log">B: <select class="win-s win-quote">' + opts + "</select></label>";
       }
       return '<select class="win-s win-mode">' +
-          '<option value="cur"' + (p.cfg.mode === "cur" ? " selected" : "") + ">" + T("Валюты", "Currencies") + "</option>" +
-          '<option value="pair"' + (p.cfg.mode === "pair" ? " selected" : "") + ">" + T("Пары к B", "Pairs vs B") + "</option>" +
+          '<option value="cur"' + (p.cfg.mode === "cur" ? " selected" : "") + ">" + T("Валюты", "Currencies", "Monedas") + "</option>" +
+          '<option value="pair"' + (p.cfg.mode === "pair" ? " selected" : "") + ">" + T("Пары к B", "Pairs vs B", "Pares vs B") + "</option>" +
         "</select>" + q + rangeTabs(p.cfg.range);
     }
     if (p.t === "demand") {
       return '<select class="win-s win-view">' +
-          '<option value="dir"' + (p.cfg.view === "dir" ? " selected" : "") + ">" + T("Направления (GSC)", "Directions (GSC)") + "</option>" +
-          '<option value="cur"' + (p.cfg.view === "cur" ? " selected" : "") + ">" + T("Валюты (GSC)", "Currencies (GSC)") + "</option>" +
-          '<option value="trend"' + (p.cfg.view === "trend" ? " selected" : "") + ">" + T("Тренд (CoinGecko)", "Trending (CoinGecko)") + "</option>" +
-          '<option value="yandex"' + (p.cfg.view === "yandex" ? " selected" : "") + ">" + T("Яндекс: запросы", "Yandex: queries") + "</option>" +
-          '<option value="metrika"' + (p.cfg.view === "metrika" ? " selected" : "") + ">" + T("Метрика: фразы", "Metrika: phrases") + "</option>" +
+          '<option value="dir"' + (p.cfg.view === "dir" ? " selected" : "") + ">" + T("Направления (GSC)", "Directions (GSC)", "Direcciones (GSC)") + "</option>" +
+          '<option value="cur"' + (p.cfg.view === "cur" ? " selected" : "") + ">" + T("Валюты (GSC)", "Currencies (GSC)", "Monedas (GSC)") + "</option>" +
+          '<option value="trend"' + (p.cfg.view === "trend" ? " selected" : "") + ">" + T("Тренд (CoinGecko)", "Trending (CoinGecko)", "Tendencia (CoinGecko)") + "</option>" +
+          '<option value="yandex"' + (p.cfg.view === "yandex" ? " selected" : "") + ">" + T("Яндекс: запросы", "Yandex: queries", "Yandex: consultas") + "</option>" +
+          '<option value="metrika"' + (p.cfg.view === "metrika" ? " selected" : "") + ">" + T("Метрика: фразы", "Metrika: phrases", "Metrica: frases") + "</option>" +
         "</select>";
     }
     return "";
@@ -522,12 +524,12 @@
   // селект валюты оценки (base): USDT по умолчанию + все валюты
   function baseSelect(p) {
     var b = p.cfg.base || "";
-    var opts = '<option value=""' + (b === "" ? " selected" : "") + ">" + T("по терминалу", "terminal") + "</option>" +
+    var opts = '<option value=""' + (b === "" ? " selected" : "") + ">" + T("по терминалу", "terminal", "por terminal") + "</option>" +
       '<option value="USD"' + (b === "USD" ? " selected" : "") + ">USDT</option>" +
       Object.keys(DATA.series).filter(function (s) { return s !== "tether-trc20"; }).sort(byName).map(function (s) {
         return '<option value="' + esc(s) + '"' + (b === s ? " selected" : "") + ">" + esc(ticker(s) || name(s)) + "</option>";
       }).join("");
-    return '<label class="win-log">' + T("в", "in") + ' <select class="win-s win-base">' + opts + "</select></label>";
+    return '<label class="win-log">' + T("в", "in", "en") + ' <select class="win-s win-base">' + opts + "</select></label>";
   }
 
   function winFull(el) { var f = el.requestFullscreen || el.webkitRequestFullscreen; if (f) try { f.call(el); } catch (e) {} }
@@ -552,7 +554,7 @@
     var grp = el.querySelector(".win-grp");
     if (grp) grp.addEventListener("change", function () {
       if (grp.value) { p.cfg.grp = grp.value; p.cfg.cur = null; }
-      var pk = el.querySelector(".win-pick"); if (pk) pk.textContent = "◧ " + T("Валюты", "Currencies") + " (" + panelSlugs(p).length + ")";
+      var pk = el.querySelector(".win-pick"); if (pk) pk.textContent = "◧ " + T("Валюты", "Currencies", "Monedas") + " (" + panelSlugs(p).length + ")";
       drawBody(p, body()); saveWS();
     });
     var baseSel = el.querySelector(".win-base");
@@ -644,7 +646,7 @@
   // ----- ГРАФИК -----
   function drawChart(p, body) {
     var cfg = p.cfg, sels = cfg.cur.filter(function (s) { return DATA.series[s]; });
-    if (!sels.length) { body.innerHTML = empty(T("Нет валют. Нажмите «Валюты».", "No currencies. Click “Currencies”.")); return; }
+    if (!sels.length) { body.innerHTML = empty(T("Нет валют. Нажмите «Валюты».", "No currencies. Click “Currencies”.", "Sin monedas. Tocá «Monedas».")); return; }
     var W = body.clientWidth || 400, H = body.clientHeight || 240;
     var padL = 52, padR = 10, padT = 10, padB = 22, w = W - padL - padR, h = H - padT - padB;
     if (w < 40 || h < 30) { body.innerHTML = empty("…"); return; }
@@ -659,7 +661,7 @@
       pts.forEach(function (pt) { var d = pt[0].slice(0, 10); (byDay[d] = byDay[d] || []).push(pt[1]); });
       var days = Object.keys(byDay).sort();
       var ohlc = days.map(function (d) { var a = byDay[d]; return { d: d, o: a[0], c: a[a.length - 1], h: Math.max.apply(null, a), l: Math.min.apply(null, a) }; });
-      if (!ohlc.length) { body.innerHTML = empty(T("Нет данных.", "No data.")); return; }
+      if (!ohlc.length) { body.innerHTML = empty(T("Нет данных.", "No data.", "Sin datos.")); return; }
       var vs = []; ohlc.forEach(function (c) { vs.push(c.h, c.l); });
       var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs); if (mn === mx) { mn *= 0.99; mx *= 1.01; }
       var sc = makeScale(mn, mx, cfg.log, padT, h), cw = Math.max(2, Math.min(14, w / ohlc.length * 0.6));
@@ -671,16 +673,16 @@
         svg += '<rect x="' + (x - cw / 2).toFixed(1) + '" y="' + Math.min(yo, yc).toFixed(1) + '" width="' + cw.toFixed(1) + '" height="' + Math.max(1, Math.abs(yc - yo)).toFixed(1) + '" fill="' + col + '"/>';
       });
       svg += xlabels(ohlc.map(function (c) { return c.d; }), padL, w, H, padB);
-      svg += "</svg>"; body.innerHTML = svg + legendHTML([{ s: sels[0], col: "#26d07c", extra: T("свечи", "candles") }], p); wireOpens(body);
+      svg += "</svg>"; body.innerHTML = svg + legendHTML([{ s: sels[0], col: "#26d07c", extra: T("свечи", "candles", "velas") }], p); wireOpens(body);
       p._hover = { kind: "candle", W: W, padL: padL, w: w, ohlc: ohlc, Xi: function (i) { return padL + (ohlc.length === 1 ? w / 2 : i / (ohlc.length - 1) * w); }, name: name(sels[0]), baseName: bn, stats: [statsOf(pts)] };
       attachHover(p, body);
       return;
     }
 
     if (cfg.type === "ratio") {
-      if (sels.length < 2) { body.innerHTML = empty(T("Нужно ≥2 валюты для пары A/B.", "Need ≥2 currencies for A/B.")); return; }
+      if (sels.length < 2) { body.innerHTML = empty(T("Нужно ≥2 валюты для пары A/B.", "Need ≥2 currencies for A/B.", "Se necesitan ≥2 monedas para el par A/B.")); return; }
       var rp = rangeFilter(ratioSeries(sels[0], sels[1]), cfg.range);
-      if (rp.length < 2) { body.innerHTML = empty(T("Нет пересечения дат.", "No overlapping dates.")); return; }
+      if (rp.length < 2) { body.innerHTML = empty(T("Нет пересечения дат.", "No overlapping dates.", "Sin fechas en común.")); return; }
       var rv = rp.map(function (x) { return x[1]; }), rmn = Math.min.apply(null, rv), rmx = Math.max.apply(null, rv);
       if (rmn === rmx) { rmn *= 0.99; rmx = rmx * 1.01 + 1e-9; }
       var rsc = makeScale(rmn, rmx, cfg.log, padT, h), rx0 = dnum(rp[0][0]), rxs = (dnum(rp[rp.length - 1][0]) - rx0) || 1;
@@ -702,7 +704,7 @@
     if (showPrev && baseSels.indexOf(prev) < 0) baseSels.push(prev);
     var single = baseSels.length === 1;
     var sd = baseSels.map(function (s) { return { s: s, pts: rangeFilter(rebased(s, base), cfg.range) }; }).filter(function (o) { return o.pts.length; });
-    if (!sd.length) { body.innerHTML = empty(T("Нет данных за период.", "No data for the period.")); return; }
+    if (!sd.length) { body.innerHTML = empty(T("Нет данных за период.", "No data for the period.", "Sin datos para el período.")); return; }
     sd.forEach(function (o) { var st = o.pts[0][1] || 1; o.norm = o.pts.map(function (pt) { return [pt[0], single ? pt[1] : pt[1] / st * 100]; }); });
     var allv = [], allx = []; sd.forEach(function (o) { o.norm.forEach(function (pt) { allv.push(pt[1]); allx.push(dnum(pt[0])); }); });
     var mn2 = Math.min.apply(null, allv), mx2 = Math.max.apply(null, allv); if (mn2 === mx2) { mn2 *= 0.99; mx2 = mx2 * 1.01 + 1; }
@@ -773,9 +775,9 @@
 
   function statLine(st) {
     if (!st) return "";
-    return '<div class="wt-s">' + T("период", "range") + ": " + (st.chg == null ? "—" : fmtPct(st.chg)) +
-      " · " + T("волат", "vol") + " " + (st.vol == null ? "—" : st.vol.toFixed(1) + "%") +
-      " · min " + fmtNum(st.mn) + " · max " + fmtNum(st.mx) + " · " + T("сред", "avg") + " " + fmtNum(st.avg) + "</div>";
+    return '<div class="wt-s">' + T("период", "range", "período") + ": " + (st.chg == null ? "—" : fmtPct(st.chg)) +
+      " · " + T("волат", "vol", "vol.") + " " + (st.vol == null ? "—" : st.vol.toFixed(1) + "%") +
+      " · min " + fmtNum(st.mn) + " · max " + fmtNum(st.mx) + " · " + T("сред", "avg", "prom.") + " " + fmtNum(st.avg) + "</div>";
   }
   // таймлайн-курсор: вертикаль + тултип со значениями в наведённой точке
   function attachHover(p, body) {
@@ -824,12 +826,12 @@
   function drawWatch(p, body) {
     var base = effBase(p);
     var slugs = panelSlugs(p);
-    if (!slugs.length) { body.innerHTML = empty(T("Пусто.", "Empty.")); return; }
+    if (!slugs.length) { body.innerHTML = empty(T("Пусто.", "Empty.", "Vacío.")); return; }
     var rows = slugs.map(function (s) {
       return { s: s, last: lastVal(s, base), pc: pctChange(s, base, p.cfg.range), spk: rangeFilter(rebased(s, base), p.cfg.range) };
     }).sort(function (a, b) { return (b.pc == null ? -1e9 : b.pc) - (a.pc == null ? -1e9 : a.pc); });
     body.innerHTML =
-      '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Валюта", "Currency") + "</th><th>" + T("Цена, USDT", "Price, USDT") + "</th><th></th><th>" + T("Δ", "Δ") + "</th></tr></thead><tbody>" +
+      '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Валюта", "Currency", "Moneda") + "</th><th>" + T("Цена, USDT", "Price, USDT", "Precio, USDT") + "</th><th></th><th>" + T("Δ", "Δ", "Δ") + "</th></tr></thead><tbody>" +
       rows.map(function (r) {
         return "<tr><td class='wl-n' data-add='" + esc(r.s) + "'>" + esc(name(r.s)) + " <b>" + esc(ticker(r.s)) + "</b>" + onMark(r.s) + " <span class='op-i'>📈</span></td>" +
           "<td class='wl-p'>" + fmtNum(r.last) + "</td>" +
@@ -862,8 +864,8 @@
     }
     body.innerHTML =
       '<div class="movers-wrap">' +
-        '<div class="mv-col"><div class="mv-h up">▲ ' + T("Рост", "Gainers") + '</div><table class="win-tbl">' + col(gain) + "</table></div>" +
-        '<div class="mv-col"><div class="mv-h dn">▼ ' + T("Падение", "Losers") + '</div><table class="win-tbl">' + col(loss) + "</table></div>" +
+        '<div class="mv-col"><div class="mv-h up">▲ ' + T("Рост", "Gainers", "Subidas") + '</div><table class="win-tbl">' + col(gain) + "</table></div>" +
+        '<div class="mv-col"><div class="mv-h dn">▼ ' + T("Падение", "Losers", "Bajadas") + '</div><table class="win-tbl">' + col(loss) + "</table></div>" +
       "</div>";
     wireAdd(body);
   }
@@ -877,7 +879,7 @@
     body.innerHTML = '<div class="heat-grid">' + cells.map(function (c) {
       var on = inActiveChart(c.s);
       return '<div class="ht-cell' + (on ? " on-chart-cell" : "") + '" data-add="' + esc(c.s) + '" style="background:' + heatColor(c.pc) + '">' +
-        (on ? '<span class="ht-dot" title="' + T("на графике", "on chart") + '"></span>' : "") +
+        (on ? '<span class="ht-dot" title="' + T("на графике", "on chart", "en el gráfico") + '"></span>' : "") +
         '<span class="ht-t">' + esc(ticker(c.s) || name(c.s)) + "</span><span class='ht-p'>" + (c.pc == null ? "—" : fmtPct(c.pc)) + "</span></div>";
     }).join("") + "</div>";
     wireAdd(body);
@@ -888,16 +890,16 @@
     var c = p.cfg, isPair = c.mode === "pair", sbase = effBase(p);
     body.innerHTML =
       '<div class="scr-f">' +
-        '<input class="scr-q" placeholder="' + T("поиск…", "search…") + '" value="' + esc(c.q || "") + '">' +
-        '<label class="scr-fl">' + T("изм% ≥", "chg% ≥") + ' <input class="scr-chg" type="number" step="1" value="' + esc(c.fchg == null ? "" : c.fchg) + '"></label>' +
-        '<label class="scr-fl">' + T("вол% ≤", "vol% ≤") + ' <input class="scr-vol" type="number" step="0.1" value="' + esc(c.fvol == null ? "" : c.fvol) + '"></label>' +
+        '<input class="scr-q" placeholder="' + T("поиск…", "search…", "buscar…") + '" value="' + esc(c.q || "") + '">' +
+        '<label class="scr-fl">' + T("изм% ≥", "chg% ≥", "var% ≥") + ' <input class="scr-chg" type="number" step="1" value="' + esc(c.fchg == null ? "" : c.fchg) + '"></label>' +
+        '<label class="scr-fl">' + T("вол% ≤", "vol% ≤", "vol% ≤") + ' <input class="scr-vol" type="number" step="0.1" value="' + esc(c.fvol == null ? "" : c.fvol) + '"></label>' +
         '<select class="scr-sort">' +
-          '<option value="chg"' + (c.sort === "chg" ? " selected" : "") + ">" + T("по изм.", "by chg") + "</option>" +
-          '<option value="vol"' + (c.sort === "vol" ? " selected" : "") + ">" + T("по волат.", "by vol") + "</option>" +
-          '<option value="price"' + (c.sort === "price" ? " selected" : "") + ">" + T("по цене", "by price") + "</option>" +
-          '<option value="name"' + (c.sort === "name" ? " selected" : "") + ">" + T("по имени", "by name") + "</option>" +
+          '<option value="chg"' + (c.sort === "chg" ? " selected" : "") + ">" + T("по изм.", "by chg", "por var.") + "</option>" +
+          '<option value="vol"' + (c.sort === "vol" ? " selected" : "") + ">" + T("по волат.", "by vol", "por vol.") + "</option>" +
+          '<option value="price"' + (c.sort === "price" ? " selected" : "") + ">" + T("по цене", "by price", "por precio") + "</option>" +
+          '<option value="name"' + (c.sort === "name" ? " selected" : "") + ">" + T("по имени", "by name", "por nombre") + "</option>" +
         "</select>" +
-        '<button class="scr-dir" title="' + T("Направление", "Direction") + '">' + (c.dir < 0 ? "↓" : "↑") + "</button>" +
+        '<button class="scr-dir" title="' + T("Направление", "Direction", "Dirección") + '">' + (c.dir < 0 ? "↓" : "↑") + "</button>" +
         '<span class="scr-cnt"></span>' +
       "</div><div class=\"win-tblw scr-tbl\"></div>";
     var tbl = body.querySelector(".scr-tbl"), cnt = body.querySelector(".scr-cnt");
@@ -943,9 +945,9 @@
     }
     function renderTable() {
       var list = build();
-      cnt.textContent = list.length + " " + T("шт", "items");
-      if (!list.length) { tbl.innerHTML = empty(T("Ничего не найдено", "Nothing found")); return; }
-      tbl.innerHTML = '<table class="win-tbl"><thead><tr><th>' + (isPair ? T("Пара", "Pair") : T("Валюта", "Currency")) + "</th><th>" + (isPair ? T("Курс", "Rate") : T("Цена", "Price")) + "</th><th>" + T("Изм%", "Chg%") + "</th><th>" + T("Вол%", "Vol%") + "</th></tr></thead><tbody>" +
+      cnt.textContent = list.length + " " + T("шт", "items", "ítems");
+      if (!list.length) { tbl.innerHTML = empty(T("Ничего не найдено", "Nothing found", "Nada encontrado")); return; }
+      tbl.innerHTML = '<table class="win-tbl"><thead><tr><th>' + (isPair ? T("Пара", "Pair", "Par") : T("Валюта", "Currency", "Moneda")) + "</th><th>" + (isPair ? T("Курс", "Rate", "Tasa") : T("Цена", "Price", "Precio")) + "</th><th>" + T("Изм%", "Chg%", "Var%") + "</th><th>" + T("Вол%", "Vol%", "Vol%") + "</th></tr></thead><tbody>" +
         list.map(function (r) {
           return "<tr " + r.oa + "><td class='wl-n'>" + r.label + " <span class='op-i'>📈</span></td><td class='wl-p'>" + fmtNum(r.last) + "</td><td class='wl-c " + (r.chg >= 0 ? "up" : "dn") + "'>" + fmtPct(r.chg) + "</td><td class='wl-v'>" + (r.vol == null ? "—" : r.vol.toFixed(1)) + "</td></tr>";
         }).join("") + "</tbody></table>";
@@ -968,9 +970,9 @@
   function drawDemand(p, body) {
     if (p.cfg.view === "trend") {
       var tr = DATA.trending || [];
-      if (!tr.length) { body.innerHTML = empty(T("Тренд пока не загружен (обновляется из CoinGecko).", "Trending not loaded yet (updates from CoinGecko).")); return; }
-      body.innerHTML = '<p class="dm-hint">' + T("Топ поиска CoinGecko. 📈 — в график · ↗ — страница валюты · 🔍 — поиск.", "Top searched on CoinGecko. 📈 — chart · ↗ — currency page · 🔍 — search.") + "</p>" +
-        '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Монета", "Coin") + "</th><th>" + T("Ранг", "Rank") + "</th><th>24ч</th></tr></thead><tbody>" +
+      if (!tr.length) { body.innerHTML = empty(T("Тренд пока не загружен (обновляется из CoinGecko).", "Trending not loaded yet (updates from CoinGecko).", "Tendencia aún no cargada (se actualiza desde CoinGecko).")); return; }
+      body.innerHTML = '<p class="dm-hint">' + T("Топ поиска CoinGecko. 📈 — в график · ↗ — страница валюты · 🔍 — поиск.", "Top searched on CoinGecko. 📈 — chart · ↗ — currency page · 🔍 — search.", "Top de búsqueda de CoinGecko. 📈 — al gráfico · ↗ — página de la moneda · 🔍 — búsqueda.") + "</p>" +
+        '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Монета", "Coin", "Moneda") + "</th><th>" + T("Ранг", "Rank", "Rango") + "</th><th>24ч</th></tr></thead><tbody>" +
         tr.map(function (c, i) {
           var slug = c.slug || "";
           var nm = esc(c.name || c.symbol || "?") + (c.symbol ? " <b>" + esc(c.symbol) + "</b>" : "");
@@ -992,54 +994,54 @@
     }
     if (p.cfg.view === "yandex") {
       var yq = (DATA.yandex || []).filter(function (r) { return !dmJunk(r.q); });
-      if (!yq.length) { body.innerHTML = empty(T("Яндекс-запросы пока не загружены (Вебмастер).", "Yandex queries not loaded yet (Webmaster).")); return; }
-      body.innerHTML = '<p class="dm-hint">' + T("Что ищут в Яндексе, чтобы найти сайт (показы·клики). ↗ — открыть в Яндексе.", "What people search in Yandex to find the site (shows·clicks). ↗ — open in Yandex.") + "</p>" +
-        '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Запрос", "Query") + "</th><th>" + T("Показы", "Shows") + "</th><th>" + T("Клики", "Clicks") + "</th></tr></thead><tbody>" +
+      if (!yq.length) { body.innerHTML = empty(T("Яндекс-запросы пока не загружены (Вебмастер).", "Yandex queries not loaded yet (Webmaster).", "Consultas de Yandex aún no cargadas (Webmaster).")); return; }
+      body.innerHTML = '<p class="dm-hint">' + T("Что ищут в Яндексе, чтобы найти сайт (показы·клики). ↗ — открыть в Яндексе.", "What people search in Yandex to find the site (shows·clicks). ↗ — open in Yandex.", "Qué buscan en Yandex para hallar el sitio (impresiones·clics). ↗ — abrir en Yandex.") + "</p>" +
+        '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Запрос", "Query", "Consulta") + "</th><th>" + T("Показы", "Shows", "Impresiones") + "</th><th>" + T("Клики", "Clicks", "Clics") + "</th></tr></thead><tbody>" +
         yq.map(function (r) {
           return "<tr><td class='wl-n' data-yq='" + esc(r.q) + "'>" + esc(r.q) + " <span class='op-i'>↗</span></td>" +
             "<td class='wl-c'>" + (r.shows == null ? "—" : r.shows) + "</td><td class='wl-c'>" + (r.clicks == null ? "—" : r.clicks) + "</td></tr>";
         }).join("") + "</tbody></table></div>";
       Array.prototype.forEach.call(body.querySelectorAll("[data-yq]"), function (n) {
-        n.classList.add("op-link"); n.title = T("Открыть в Яндексе", "Open in Yandex");
+        n.classList.add("op-link"); n.title = T("Открыть в Яндексе", "Open in Yandex", "Abrir en Yandex");
         n.addEventListener("click", function (e) { e.stopPropagation(); openUrl("https://yandex.ru/search/?text=" + encodeURIComponent(n.getAttribute("data-yq"))); });
       });
       return;
     }
     if (p.cfg.view === "metrika") {
       var mq = (DATA.metrika || []).filter(function (r) { return !dmJunk(r.q); });
-      if (!mq.length) { body.innerHTML = empty(T("Фразы Метрики пока не загружены (часть Яндекс скрывает).", "Metrika phrases not loaded yet (Yandex hides some).")); return; }
-      body.innerHTML = '<p class="dm-hint">' + T("Поисковые фразы из Яндекс.Метрики (визиты). ↗ — открыть в Яндексе.", "Search phrases from Yandex Metrika (visits). ↗ — open in Yandex.") + "</p>" +
-        '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Фраза", "Phrase") + "</th><th>" + T("Визиты", "Visits") + "</th></tr></thead><tbody>" +
+      if (!mq.length) { body.innerHTML = empty(T("Фразы Метрики пока не загружены (часть Яндекс скрывает).", "Metrika phrases not loaded yet (Yandex hides some).", "Frases de Métrica aún no cargadas (Yandex oculta parte).")); return; }
+      body.innerHTML = '<p class="dm-hint">' + T("Поисковые фразы из Яндекс.Метрики (визиты). ↗ — открыть в Яндексе.", "Search phrases from Yandex Metrika (visits). ↗ — open in Yandex.", "Frases de búsqueda de Yandex Métrica (visitas). ↗ — abrir en Yandex.") + "</p>" +
+        '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Фраза", "Phrase", "Frase") + "</th><th>" + T("Визиты", "Visits", "Visitas") + "</th></tr></thead><tbody>" +
         mq.map(function (r) { return "<tr><td class='wl-n' data-yq='" + esc(r.q) + "'>" + esc(r.q) + " <span class='op-i'>↗</span></td><td class='wl-c'>" + (r.visits == null ? "—" : r.visits) + "</td></tr>"; }).join("") + "</tbody></table></div>";
       Array.prototype.forEach.call(body.querySelectorAll("[data-yq]"), function (n) {
-        n.classList.add("op-link"); n.title = T("Открыть в Яндексе", "Open in Yandex");
+        n.classList.add("op-link"); n.title = T("Открыть в Яндексе", "Open in Yandex", "Abrir en Yandex");
         n.addEventListener("click", function (e) { e.stopPropagation(); openUrl("https://yandex.ru/search/?text=" + encodeURIComponent(n.getAttribute("data-yq"))); });
       });
       return;
     }
     var pop = DATA.popular || {}, keys = Object.keys(pop);
-    if (!keys.length) { body.innerHTML = empty(T("Данных поиска пока мало — накапливаются из Google Search Console.", "Little search data yet — accumulating from Google Search Console.")); return; }
-    var hint = '<p class="dm-hint">' + T("По данным поиска Google (клики). 📈 — в график · ↗ — на сайте.", "From Google search (clicks). 📈 — chart · ↗ — on site.") + "</p>";
+    if (!keys.length) { body.innerHTML = empty(T("Данных поиска пока мало — накапливаются из Google Search Console.", "Little search data yet — accumulating from Google Search Console.", "Aún hay pocos datos de búsqueda — se acumulan desde Google Search Console.")); return; }
+    var hint = '<p class="dm-hint">' + T("По данным поиска Google (клики). 📈 — в график · ↗ — на сайте.", "From Google search (clicks). 📈 — chart · ↗ — on site.", "Según la búsqueda de Google (clics). 📈 — al gráfico · ↗ — en el sitio.") + "</p>";
     if (p.cfg.view === "cur") {
       var agg = {};
       keys.forEach(function (k) { var c = pop[k]; k.split(">").forEach(function (s) { agg[s] = (agg[s] || 0) + c; }); });
       var rows = Object.keys(agg).map(function (s) { return { s: s, c: agg[s] }; }).sort(function (a, b) { return b.c - a.c; });
-      body.innerHTML = hint + '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Валюта", "Currency") + "</th><th>" + T("Запросы", "Searches") + "</th></tr></thead><tbody>" +
+      body.innerHTML = hint + '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Валюта", "Currency", "Moneda") + "</th><th>" + T("Запросы", "Searches", "Consultas") + "</th></tr></thead><tbody>" +
         rows.map(function (r) { return "<tr><td class='wl-n' data-cur='" + esc(r.s) + "'>" + esc(name(r.s)) + (ticker(r.s) ? " <b>" + esc(ticker(r.s)) + "</b>" : "") + onMark(r.s) + " <span class='op-i'>" + dmCurIcon(r.s) + "</span></td><td class='wl-c'>" + r.c + "</td></tr>"; }).join("") +
         "</tbody></table></div>";
     } else {
       var drows = keys.map(function (k) { var ab = k.split(">"); return { a: ab[0], b: ab[1], c: pop[k] }; }).sort(function (x, y) { return y.c - x.c; });
-      body.innerHTML = hint + '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Направление", "Direction") + "</th><th>" + T("Запросы", "Searches") + "</th></tr></thead><tbody>" +
+      body.innerHTML = hint + '<div class="win-tblw"><table class="win-tbl"><thead><tr><th>' + T("Направление", "Direction", "Dirección") + "</th><th>" + T("Запросы", "Searches", "Consultas") + "</th></tr></thead><tbody>" +
         drows.map(function (r) { var ch = (chartableCur(r.a) || chartableCur(r.b)) ? "📈" : "↗"; return "<tr><td class='wl-n' data-a='" + esc(r.a) + "' data-b='" + esc(r.b) + "'>" + esc(name(r.a)) + " → " + esc(name(r.b)) + " <span class='op-i'>" + ch + "</span></td><td class='wl-c'>" + r.c + "</td></tr>"; }).join("") +
         "</tbody></table></div>";
     }
     // умный клик: в активный график (пара A/B или валюта в USDT), иначе — открыть на сайте
     Array.prototype.forEach.call(body.querySelectorAll("[data-cur]"), function (n) {
-      n.classList.add("op-link"); n.title = T("В активный график", "Into active chart");
+      n.classList.add("op-link"); n.title = T("В активный график", "Into active chart", "Al gráfico activo");
       n.addEventListener("click", function (e) { e.stopPropagation(); var s = n.getAttribute("data-cur"); if (DATA.series[s]) addToActiveChart(s); else openUrl(curUrl(s)); });
     });
     Array.prototype.forEach.call(body.querySelectorAll("[data-a]"), function (n) {
-      n.classList.add("op-link"); n.title = T("В активный график", "Into active chart");
+      n.classList.add("op-link"); n.title = T("В активный график", "Into active chart", "Al gráfico activo");
       n.addEventListener("click", function (e) {
         e.stopPropagation();
         var a = n.getAttribute("data-a"), b = n.getAttribute("data-b"), ca = !!DATA.series[a], cb = !!DATA.series[b];
@@ -1058,21 +1060,21 @@
     closeMenu();
     var sels = p.cfg.cur.filter(function (s) { return DATA.series[s]; });
     var items = [];
-    sels.slice(0, 6).forEach(function (s) { items.push({ l: T("Открыть ", "Open ") + name(s), f: function () { openUrl(curUrl(s)); } }); });
+    sels.slice(0, 6).forEach(function (s) { items.push({ l: T("Открыть ", "Open ", "Abrir ") + name(s), f: function () { openUrl(curUrl(s)); } }); });
     if (sels.length >= 2) {
       var a = sels[0], b = sels[1];
       items.push({ sep: 1 });
-      items.push({ l: T("Открыть пару ", "Open pair ") + (ticker(a) || a) + "/" + (ticker(b) || b) + (pairHasPage(a, b) ? "" : " (BestChange)"), f: function () { openUrl(pairUrl(a, b)); } });
-      items.push({ l: T("График пары A/B", "A/B ratio chart"), f: function () { p.cfg.type = "ratio"; renderAll(); saveWS(); } });
+      items.push({ l: T("Открыть пару ", "Open pair ", "Abrir el par ") + (ticker(a) || a) + "/" + (ticker(b) || b) + (pairHasPage(a, b) ? "" : " (BestChange)"), f: function () { openUrl(pairUrl(a, b)); } });
+      items.push({ l: T("График пары A/B", "A/B ratio chart", "Gráfico del par A/B"), f: function () { p.cfg.type = "ratio"; renderAll(); saveWS(); } });
     }
     items.push({ sep: 1 });
-    items.push({ l: T("Тип: линии", "Type: lines"), f: function () { p.cfg.type = "line"; renderAll(); saveWS(); } });
-    items.push({ l: T("Тип: свечи", "Type: candles"), f: function () { p.cfg.type = "candle"; renderAll(); saveWS(); } });
-    items.push({ l: (p.cfg.log ? "✓ " : "") + T("Лог-шкала", "Log scale"), f: function () { p.cfg.log = !p.cfg.log; renderAll(); saveWS(); } });
+    items.push({ l: T("Тип: линии", "Type: lines", "Tipo: líneas"), f: function () { p.cfg.type = "line"; renderAll(); saveWS(); } });
+    items.push({ l: T("Тип: свечи", "Type: candles", "Tipo: velas"), f: function () { p.cfg.type = "candle"; renderAll(); saveWS(); } });
+    items.push({ l: (p.cfg.log ? "✓ " : "") + T("Лог-шкала", "Log scale", "Escala log"), f: function () { p.cfg.log = !p.cfg.log; renderAll(); saveWS(); } });
     items.push({ sep: 1 });
-    items.push({ l: T("Выбрать валюты…", "Pick currencies…"), f: function () { var el = canvas.querySelector('[data-id="' + p.id + '"]'); openPicker(p, el); } });
-    items.push({ l: T("Экспорт CSV", "Export CSV"), f: function () { exportChartCSV(p); } });
-    items.push({ l: T("Экспорт PNG", "Export PNG"), f: function () { exportChartPNG(p); } });
+    items.push({ l: T("Выбрать валюты…", "Pick currencies…", "Elegir monedas…"), f: function () { var el = canvas.querySelector('[data-id="' + p.id + '"]'); openPicker(p, el); } });
+    items.push({ l: T("Экспорт CSV", "Export CSV", "Exportar CSV"), f: function () { exportChartCSV(p); } });
+    items.push({ l: T("Экспорт PNG", "Export PNG", "Exportar PNG"), f: function () { exportChartPNG(p); } });
     showMenu(items, x, y);
   }
   // общая отрисовка контекстного меню
@@ -1097,25 +1099,25 @@
     closeMenu();
     var ours = !!(slug && DATA.cur[slug]), q = ours ? name(slug) : (dispName || slug);
     var items = [];
-    if (chartableCur(slug)) items.push({ l: "📈 " + (inActiveChart(slug) ? T("Убрать с активного графика", "Remove from active chart") : T("Добавить на активный график", "Add to active chart")), f: function () { addToActiveChart(slug); } });
-    if (ours) items.push({ l: "↗ " + T("Страница валюты на сайте", "Currency page on site"), f: function () { openUrl(curUrl(slug)); } });
+    if (chartableCur(slug)) items.push({ l: "📈 " + (inActiveChart(slug) ? T("Убрать с активного графика", "Remove from active chart", "Quitar del gráfico activo") : T("Добавить на активный график", "Add to active chart", "Agregar al gráfico activo")), f: function () { addToActiveChart(slug); } });
+    if (ours) items.push({ l: "↗ " + T("Страница валюты на сайте", "Currency page on site", "Página de la moneda en el sitio"), f: function () { openUrl(curUrl(slug)); } });
     items.push({ sep: 1 });
-    items.push({ l: "🔍 Google: " + q, f: function () { webSearch("g", q + " курс криптовалюта"); } });
-    items.push({ l: "🔍 " + T("Яндекс", "Yandex") + ": " + q, f: function () { webSearch("y", q + " курс криптовалюта"); } });
+    items.push({ l: "🔍 Google: " + q, f: function () { webSearch("g", (LANG === "es" ? q + " cotización cripto" : (LANG === "en" ? q + " crypto price" : q + " курс криптовалюта"))); } });
+    items.push({ l: "🔍 " + T("Яндекс", "Yandex", "Yandex") + ": " + q, f: function () { webSearch("y", (LANG === "es" ? q + " cotización cripto" : (LANG === "en" ? q + " crypto price" : q + " курс криптовалюта"))); } });
     showMenu(items, x, y);
   }
   // меню по направлению/паре (правый клик по строке направления)
   function openPairMenu(a, b, x, y) {
     closeMenu();
     var ca = chartableCur(a), cb = chartableCur(b), items = [];
-    if (ca && cb) items.push({ l: "📈 " + T("Пара A/B в графике", "A/B pair in chart"), f: function () { setActiveRatio(a, b); } });
-    else if (ca) items.push({ l: "📈 " + T("Открыть в графике", "Open in chart") + ": " + name(a), f: function () { addToActiveChart(a); } });
-    else if (cb) items.push({ l: "📈 " + T("Открыть в графике", "Open in chart") + ": " + name(b), f: function () { addToActiveChart(b); } });
-    items.push({ l: (pairHasPage(a, b) ? "↗ " + T("Страница направления", "Direction page") : "↗ " + T("Открыть на BestChange (реф.)", "Open on BestChange (ref)")), f: function () { openUrl(pairUrl(a, b)); } });
+    if (ca && cb) items.push({ l: "📈 " + T("Пара A/B в графике", "A/B pair in chart", "Par A/B en el gráfico"), f: function () { setActiveRatio(a, b); } });
+    else if (ca) items.push({ l: "📈 " + T("Открыть в графике", "Open in chart", "Abrir en el gráfico") + ": " + name(a), f: function () { addToActiveChart(a); } });
+    else if (cb) items.push({ l: "📈 " + T("Открыть в графике", "Open in chart", "Abrir en el gráfico") + ": " + name(b), f: function () { addToActiveChart(b); } });
+    items.push({ l: (pairHasPage(a, b) ? "↗ " + T("Страница направления", "Direction page", "Página de la dirección") : "↗ " + T("Открыть на BestChange (реф.)", "Open on BestChange (ref)", "Abrir en BestChange (ref.)")), f: function () { openUrl(pairUrl(a, b)); } });
     items.push({ sep: 1 });
-    var q = name(a) + " " + name(b) + " обмен";
+    var q = name(a) + " " + name(b) + (LANG === "es" ? " intercambio" : " обмен");
     items.push({ l: "🔍 Google", f: function () { webSearch("g", q); } });
-    items.push({ l: "🔍 " + T("Яндекс", "Yandex"), f: function () { webSearch("y", q); } });
+    items.push({ l: "🔍 " + T("Яндекс", "Yandex", "Yandex"), f: function () { webSearch("y", q); } });
     showMenu(items, x, y);
   }
   // меню по поисковой фразе (Яндекс/Метрика)
@@ -1123,24 +1125,24 @@
     closeMenu();
     showMenu([
       { l: "🔍 Google: " + q, f: function () { webSearch("g", q); } },
-      { l: "🔍 " + T("Яндекс", "Yandex") + ": " + q, f: function () { webSearch("y", q); } }
+      { l: "🔍 " + T("Яндекс", "Yandex", "Yandex") + ": " + q, f: function () { webSearch("y", q); } }
     ], x, y);
   }
   // меню фона терминала (пустое место / между окнами)
   function openBgMenu(x, y) {
     closeMenu();
     showMenu([
-      { l: "◧ " + T("Выбрать валюты (активный график)", "Pick currencies (active chart)"), f: openPickerForActive },
+      { l: "◧ " + T("Выбрать валюты (активный график)", "Pick currencies (active chart)", "Elegir monedas (gráfico activo)"), f: openPickerForActive },
       { sep: 1 },
-      { l: "+ " + T("График", "Chart"), f: function () { addPanel("chart"); } },
+      { l: "+ " + T("График", "Chart", "Gráfico"), f: function () { addPanel("chart"); } },
       { l: "+ Watchlist", f: function () { addPanel("watch"); } },
-      { l: "+ " + T("Муверы", "Movers"), f: function () { addPanel("movers"); } },
-      { l: "+ " + T("Хитмап", "Heatmap"), f: function () { addPanel("heat"); } },
-      { l: "+ " + T("Скринер", "Screener"), f: function () { addPanel("screen"); } },
-      { l: "+ " + T("Спрос", "Demand"), f: function () { addPanel("demand"); } },
+      { l: "+ " + T("Муверы", "Movers", "Movimientos"), f: function () { addPanel("movers"); } },
+      { l: "+ " + T("Хитмап", "Heatmap", "Mapa de calor"), f: function () { addPanel("heat"); } },
+      { l: "+ " + T("Скринер", "Screener", "Screener"), f: function () { addPanel("screen"); } },
+      { l: "+ " + T("Спрос", "Demand", "Demanda"), f: function () { addPanel("demand"); } },
       { sep: 1 },
-      { l: (STATE.tiled ? "✓ " : "") + "⊞ " + T("Сетка", "Tile"), f: function () { STATE.tiled = !STATE.tiled; renderAll(); saveWS(); } },
-      { l: "⛶ " + T("Во весь экран", "Fullscreen"), f: toggleFull }
+      { l: (STATE.tiled ? "✓ " : "") + "⊞ " + T("Сетка", "Tile", "Mosaico"), f: function () { STATE.tiled = !STATE.tiled; renderAll(); saveWS(); } },
+      { l: "⛶ " + T("Во весь экран", "Fullscreen", "Pantalla completa"), f: toggleFull }
     ], x, y);
   }
   // делегированный правый клик (capture): валюта/пара → своё меню; фраза → Google/Яндекс;
@@ -1233,11 +1235,11 @@
     var slugs = Object.keys(DATA.series).sort(byName);
     pickBox.innerHTML =
       '<div class="pick-in">' +
-        '<div class="pick-h"><b>' + T("Выбор валют", "Select currencies") + " · " + esc(PTITLE[p.t] || "") + '</b><button class="pick-x">✕</button></div>' +
-        '<input class="pick-search" placeholder="' + T("поиск…", "search…") + '" autocomplete="off">' +
-        '<div class="pick-presets"><button data-g="all">' + T("Все", "All") + '</button><button data-g="top">' + T("Топ-крипта", "Top crypto") + '</button><button data-g="stable">' + T("Стейблы", "Stables") + '</button><button data-g="fiat">' + T("Фиат", "Fiat") + '</button><button data-g="clr">' + T("Очистить", "Clear") + "</button></div>" +
+        '<div class="pick-h"><b>' + T("Выбор валют", "Select currencies", "Selección de monedas") + " · " + esc(PTITLE[p.t] || "") + '</b><button class="pick-x">✕</button></div>' +
+        '<input class="pick-search" placeholder="' + T("поиск…", "search…", "buscar…") + '" autocomplete="off">' +
+        '<div class="pick-presets"><button data-g="all">' + T("Все", "All", "Todas") + '</button><button data-g="top">' + T("Топ-крипта", "Top crypto", "Top cripto") + '</button><button data-g="stable">' + T("Стейблы", "Stables", "Stables") + '</button><button data-g="fiat">' + T("Фиат", "Fiat", "Fiat") + '</button><button data-g="clr">' + T("Очистить", "Clear", "Limpiar") + "</button></div>" +
         '<div class="pick-list"></div>' +
-        '<div class="pick-f"><button class="pick-ok">' + T("Готово", "Done") + "</button></div>" +
+        '<div class="pick-f"><button class="pick-ok">' + T("Готово", "Done", "Listo") + "</button></div>" +
       "</div>";
     (fsEl() || document.body).appendChild(pickBox);
     pickBox.addEventListener("contextmenu", function (e) { if (!e.target.closest("input,textarea")) e.preventDefault(); }); // без браузерного меню (кроме полей ввода)
@@ -1246,7 +1248,7 @@
     function renderList(q) {
       q = (q || "").toLowerCase().trim();
       var fs = slugs.filter(function (s) { if (!q) return true; var c = DATA.cur[s] || {}; return (s + " " + (c.n || "") + " " + (c.t || "")).toLowerCase().indexOf(q) >= 0; });
-      var hd = '<div class="pick-row pick-hd"><span>' + T("Валюта", "Currency") + "</span><span>" + T("Цена", "Price") + "</span><span>Δ%</span><span>" + T("вол%", "vol%") + "</span></div>";
+      var hd = '<div class="pick-row pick-hd"><span>' + T("Валюта", "Currency", "Moneda") + "</span><span>" + T("Цена", "Price", "Precio") + "</span><span>Δ%</span><span>" + T("вол%", "vol%", "vol%") + "</span></div>";
       listEl.innerHTML = hd + fs.map(function (s) {
         var c = DATA.cur[s] || { n: s, t: "" };
         var last = lastVal(s, pbase), chg = pctChange(s, pbase, prng), vol = volat(s, pbase, prng);
@@ -1277,7 +1279,7 @@
       // обновляем панель на месте (не renderAll — иначе вылет из фулскрина)
       var pel = canvas.querySelector('[data-id="' + p.id + '"]');
       if (pel) {
-        var pk = pel.querySelector(".win-pick"); if (pk) pk.textContent = "◧ " + T("Валюты", "Currencies") + " (" + p.cfg.cur.length + ")";
+        var pk = pel.querySelector(".win-pick"); if (pk) pk.textContent = "◧ " + T("Валюты", "Currencies", "Monedas") + " (" + p.cfg.cur.length + ")";
         drawBody(p, pel.querySelector(".win-body"));
       } else { renderAll(); }
       saveWS();
@@ -1374,5 +1376,5 @@
     loadWS();
     buildBar();
     setView(initialView());
-  }).catch(function () { canvas.innerHTML = '<p class="win-empty">' + T("Не удалось загрузить данные монитора.", "Failed to load monitor data.") + "</p>"; });
+  }).catch(function () { canvas.innerHTML = '<p class="win-empty">' + T("Не удалось загрузить данные монитора.", "Failed to load monitor data.", "No se pudieron cargar los datos del monitor.") + "</p>"; });
 })();

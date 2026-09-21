@@ -27,17 +27,19 @@
   var catsEl = document.getElementById("monCats");
   var showSel = document.getElementById("monShow");
 
-  var EN = (document.documentElement.getAttribute("lang") || "ru").slice(0, 2) === "en";
-  function T(ru, en) { return EN ? en : ru; }
+  var LANG = (document.documentElement.getAttribute("lang") || "ru").slice(0, 2);
+  var EN = LANG === "en";
+  function T(ru, en, es) { return LANG === "es" ? (es === undefined ? en : es) : (EN ? en : ru); }
+  function LOC() { return LANG === "es" ? "es-AR" : (EN ? "en-US" : "ru-RU"); }
 
   var DATA = null, checked = {}, base = "USD", type = "line", sel = 0, logScale = false, showCorr = false;
   var catFilter = "", showMode = "all";
   var HOVER = null, tipEl = null, crossEl = null;
   var COLORS = ["#3399dd", "#33cc99", "#cc9944", "#cc5588", "#7a5cd0", "#5cc0d0", "#d05c8a", "#9ad04a",
                 "#d0a24a", "#4ad0a2", "#d04a4a", "#4a7ad0", "#cdd04a", "#d04acd"];
-  var RANGES = [{ k: 7, l: T("Неделя", "Week") }, { k: 30, l: T("Месяц", "Month") }, { k: 90, l: "3 " + T("мес", "mo") },
-                { k: 180, l: "6 " + T("мес", "mo") }, { k: 365, l: T("Год", "Year") }, { k: 1095, l: "3 " + T("года", "yr") },
-                { k: 1825, l: "5 " + T("лет", "yr") }, { k: 3650, l: "10 " + T("лет", "yr") }];
+  var RANGES = [{ k: 7, l: T("Неделя", "Week", "Semana") }, { k: 30, l: T("Месяц", "Month", "Mes") }, { k: 90, l: "3 " + T("мес", "mo", "mes") },
+                { k: 180, l: "6 " + T("мес", "mo", "mes") }, { k: 365, l: T("Год", "Year", "Año") }, { k: 1095, l: "3 " + T("года", "yr", "años") },
+                { k: 1825, l: "5 " + T("лет", "yr", "años") }, { k: 3650, l: "10 " + T("лет", "yr", "años") }];
   // группы для быстрых пресетов
   var TOP_CRYPTO = ["bitcoin", "ethereum", "ripple", "litecoin", "dogecoin", "monero", "tron", "bitcoin-cash", "dash", "zcash", "cardano", "solana", "polkadot"];
   var STABLE_T = ["USDT", "USDC", "DAI", "BUSD", "TUSD", "USDP", "FDUSD", "USDD"];
@@ -46,7 +48,7 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function dnum(s) { var p = s.slice(0, 10).split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000 + (s.length > 10 ? (+s.slice(11, 13)) / 24 : 0); }
   function fmtDate(s) { return s.slice(8, 10) + "." + s.slice(5, 7); }
-  function fmtNum(v) { if (v == null || isNaN(v)) return "—"; var a = Math.abs(v); if (a >= 1000) return Math.round(v).toLocaleString("ru-RU"); if (a >= 1) return v.toFixed(2); if (a >= 0.01) return v.toFixed(4); return v.toPrecision(3); }
+  function fmtNum(v) { if (v == null || isNaN(v)) return "—"; var a = Math.abs(v); if (a >= 1000) return Math.round(v).toLocaleString(LOC()); if (a >= 1) return v.toFixed(2); if (a >= 0.01) return v.toFixed(4); return v.toPrecision(3); }
   function fmtPct(p) { if (p == null || isNaN(p)) return ""; return (p >= 0 ? "+" : "") + p.toFixed(1) + "%"; }
   function name(s) { return (DATA.cur[s] || {}).n || s; }
   function ticker(s) { return (DATA.cur[s] || {}).t || ""; }
@@ -55,7 +57,7 @@
   fetch("/data/monitor.json").then(function (r) { return r.json(); }).then(function (j) {
     DATA = j;
     var slugs = Object.keys(j.series);
-    baseSel.innerHTML = '<option value="USD">' + T("Доллар (USDT)", "Dollar (USDT)") + "</option>" +
+    baseSel.innerHTML = '<option value="USD">' + T("Доллар (USDT)", "Dollar (USDT)", "Dólar (USDT)") + "</option>" +
       slugs.slice().sort(byName).map(function (s) { var c = j.cur[s] || { n: s, t: "" }; return '<option value="' + s + '">' + esc(c.n) + " (" + esc(c.t) + ")</option>"; }).join("");
     // состояние из URL, иначе дефолт
     if (!readURL()) {
@@ -64,7 +66,7 @@
     }
     baseSel.value = base; typeSel.value = type; logEl.checked = logScale; corrChk.checked = showCorr;
     buildPresets(); buildCats(); buildList(""); buildRanges(); draw();
-  }).catch(function () { if (noteEl) noteEl.textContent = T("Не удалось загрузить данные монитора.", "Failed to load monitor data."); });
+  }).catch(function () { if (noteEl) noteEl.textContent = T("Не удалось загрузить данные монитора.", "Failed to load monitor data.", "No se pudieron cargar los datos del monitor."); });
 
   function byName(a, b) { return (DATA.cur[a] ? DATA.cur[a].n : a) > (DATA.cur[b] ? DATA.cur[b].n : b) ? 1 : -1; }
 
@@ -100,7 +102,7 @@
     return Object.keys(DATA.series).filter(function (s) { return set.indexOf(ticker(s)) >= 0; }).sort(byName).slice(0, 8);
   }
   function buildPresets() {
-    var defs = [{ g: "top", l: T("Топ-крипта", "Top crypto") }, { g: "stable", l: T("Стейблы", "Stables") }, { g: "fiat", l: T("Фиат", "Fiat") }];
+    var defs = [{ g: "top", l: T("Топ-крипта", "Top crypto", "Top cripto") }, { g: "stable", l: T("Стейблы", "Stables", "Stables") }, { g: "fiat", l: T("Фиат", "Fiat", "Fiat") }];
     presetsEl.innerHTML = defs.map(function (d) {
       var n = resolveGroup(d.g).length;
       return n ? '<button class="mon-btn" data-g="' + d.g + '">' + d.l + " <b>" + n + "</b></button>" : "";
@@ -116,9 +118,9 @@
   // ---------- фильтр по категориям (как на /svodka/) ----------
   function buildCats() {
     if (!catsEl || !DATA.cats) return;
-    var all = '<button type="button" data-c=""' + (catFilter ? "" : ' class="on"') + ">" + T("Все", "All") + "</button>";
+    var all = '<button type="button" data-c=""' + (catFilter ? "" : ' class="on"') + ">" + T("Все", "All", "Todas") + "</button>";
     catsEl.innerHTML = all + DATA.cats.map(function (c) {
-      return '<button type="button" data-c="' + c.s + '"' + (catFilter === c.s ? ' class="on"' : "") + ">" + esc(EN ? c.en : c.ru) + "</button>";
+      return '<button type="button" data-c="' + c.s + '"' + (catFilter === c.s ? ' class="on"' : "") + ">" + esc(LANG === "es" ? (c.es || c.en) : (EN ? c.en : c.ru)) + "</button>";
     }).join("");
     Array.prototype.forEach.call(catsEl.querySelectorAll("button"), function (b) {
       b.addEventListener("click", function () {
@@ -139,7 +141,7 @@
       var c = DATA.cur[s] || {};
       return (s + " " + (c.n || "") + " " + (c.t || "")).toLowerCase().indexOf(q) >= 0;
     }).sort(byName);
-    if (!slugs.length) { listEl.innerHTML = '<p class="mon-empty">' + T("Ничего не найдено", "Nothing found") + "</p>"; return; }
+    if (!slugs.length) { listEl.innerHTML = '<p class="mon-empty">' + T("Ничего не найдено", "Nothing found", "Nada encontrado") + "</p>"; return; }
     listEl.innerHTML = slugs.map(function (s) {
       var c = DATA.cur[s] || { n: s, t: "" }, pc = pctChange(s);
       var badge = pc == null ? "" : '<em class="mon-pc ' + (pc >= 0 ? "up" : "dn") + '">' + fmtPct(pc) + "</em>";
@@ -188,7 +190,7 @@
   function buildRanges() {
     var span = spanDays();
     var av = RANGES.filter(function (r) { return span >= r.k; });
-    var btns = av.concat([{ k: 0, l: T("Всё", "All") }]);
+    var btns = av.concat([{ k: 0, l: T("Всё", "All", "Todo") }]);
     if (!av.some(function (r) { return r.k === sel; }) && sel !== 0) sel = av.length ? av[av.length - 1].k : 0;
     rangesEl.innerHTML = btns.map(function (r) { return '<button class="mon-btn" data-k="' + r.k + '">' + r.l + "</button>"; }).join("");
     Array.prototype.forEach.call(rangesEl.querySelectorAll(".mon-btn"), function (b) {
@@ -226,7 +228,7 @@
     var W = host.clientWidth || 700, H = 420, padL = 62, padR = 14, padT = 14, padB = 30, w = W - padL - padR, h = H - padT - padB;
     var sels = selected();
     statsEl.innerHTML = ""; corrEl.innerHTML = "";
-    if (!sels.length) { host.innerHTML = '<p class="mon-empty">' + T("Отметьте валюты справа, чтобы построить график.", "Check currencies on the right to draw a chart.") + "</p>"; legEl.innerHTML = ""; if (noteEl) noteEl.textContent = ""; HOVER = null; hideTip(); return; }
+    if (!sels.length) { host.innerHTML = '<p class="mon-empty">' + T("Отметьте валюты справа, чтобы построить график.", "Check currencies on the right to draw a chart.", "Marcá monedas a la derecha para trazar el gráfico.") + "</p>"; legEl.innerHTML = ""; if (noteEl) noteEl.textContent = ""; HOVER = null; hideTip(); return; }
 
     var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="' + H + '" class="mon-svg">';
     var bn = baseName();
@@ -239,7 +241,7 @@
       pts.forEach(function (p) { var d = p[0].slice(0, 10); (byDay[d] = byDay[d] || []).push(p[1]); });
       var days = Object.keys(byDay).sort();
       var ohlc = days.map(function (d) { var a = byDay[d]; return { d: d, o: a[0], c: a[a.length - 1], h: Math.max.apply(null, a), l: Math.min.apply(null, a) }; });
-      if (!ohlc.length) { host.innerHTML = '<p class="mon-empty">' + T("Нет данных.", "No data.") + "</p>"; return; }
+      if (!ohlc.length) { host.innerHTML = '<p class="mon-empty">' + T("Нет данных.", "No data.", "Sin datos.") + "</p>"; return; }
       var vs = []; ohlc.forEach(function (c) { vs.push(c.h, c.l); });
       var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs); if (mn === mx) { mn *= 0.99; mx *= 1.01; }
       var sc = makeScale(mn, mx, logScale, padT, h);
@@ -254,18 +256,18 @@
       });
       svg += xlabels(ohlc.map(function (c) { return c.d; }), padL, w, H, padB);
       svg += "</svg>"; host.innerHTML = svg;
-      legEl.innerHTML = '<span class="mon-lg"><i style="background:#33cc77"></i>' + esc(name(slug)) + " · " + T("свечи (день)", "candles (day)") + "</span>";
-      if (noteEl) noteEl.textContent = T("Свечи — по одной валюте (", "Candles — single currency (") + name(slug) + T("), цена в ", "), price in ") + bn + ". OHLC " + T("собран из точек дня.", "built from intraday points.") + (sels.length > 1 ? T(" Отмечено несколько — показана первая.", " Several checked — first one shown.") : "") + (logScale ? T(" Лог-шкала.", " Log scale.") : "");
+      legEl.innerHTML = '<span class="mon-lg"><i style="background:#33cc77"></i>' + esc(name(slug)) + " · " + T("свечи (день)", "candles (day)", "velas (día)") + "</span>";
+      if (noteEl) noteEl.textContent = T("Свечи — по одной валюте (", "Candles — single currency (", "Velas — una sola moneda (") + name(slug) + T("), цена в ", "), price in ", "), precio en ") + bn + ". OHLC " + T("собран из точек дня.", "built from intraday points.", "armado con puntos del día.") + (sels.length > 1 ? T(" Отмечено несколько — показана первая.", " Several checked — first one shown.", " Varias marcadas — se muestra la primera.") : "") + (logScale ? T(" Лог-шкала.", " Log scale.", " Escala log.") : "");
       HOVER = { kind: "candle", W: W, padL: padL, w: w, dates: ohlc.map(function (c) { return c.d; }), Xi: function (i) { return padL + (ohlc.length === 1 ? w / 2 : i / (ohlc.length - 1) * w); }, ohlc: ohlc, name: name(slug), baseName: bn };
       mountHover(); renderStats(sels); return;
     }
 
     // ----- ПАРА A/B -----
     if (type === "ratio") {
-      if (sels.length < 2) { host.innerHTML = '<p class="mon-empty">' + T("Отметьте минимум две валюты — покажем отношение A/B.", "Check at least two currencies — we plot the A/B ratio.") + "</p>"; legEl.innerHTML = ""; if (noteEl) noteEl.textContent = ""; HOVER = null; hideTip(); return; }
+      if (sels.length < 2) { host.innerHTML = '<p class="mon-empty">' + T("Отметьте минимум две валюты — покажем отношение A/B.", "Check at least two currencies — we plot the A/B ratio.", "Marcá al menos dos monedas — mostramos la relación A/B.") + "</p>"; legEl.innerHTML = ""; if (noteEl) noteEl.textContent = ""; HOVER = null; hideTip(); return; }
       var a = sels[0], b = sels[1];
       var rp = rangeFilter(ratioSeries(a, b));
-      if (rp.length < 2) { host.innerHTML = '<p class="mon-empty">' + T("Нет пересечения дат для пары.", "No overlapping dates for the pair.") + "</p>"; return; }
+      if (rp.length < 2) { host.innerHTML = '<p class="mon-empty">' + T("Нет пересечения дат для пары.", "No overlapping dates for the pair.", "Sin fechas en común para el par.") + "</p>"; return; }
       var rv = rp.map(function (p) { return p[1]; });
       var rmn = Math.min.apply(null, rv), rmx = Math.max.apply(null, rv); if (rmn === rmx) { rmn *= 0.99; rmx = rmx * 1.01 + 1e-9; }
       var rsc = makeScale(rmn, rmx, logScale, padT, h);
@@ -279,7 +281,7 @@
       var rlast = rp[rp.length - 1][1], rfirst = rp[0][1], rpc = (rlast / rfirst - 1) * 100;
       legEl.innerHTML = '<span class="mon-lg"><i style="background:' + COLORS[0] + '"></i>' + esc(ticker(a) || name(a)) + "/" + esc(ticker(b) || name(b)) +
         " <b>" + fmtNum(rlast) + "</b> <em class='mon-pc " + (rpc >= 0 ? "up" : "dn") + "'>" + fmtPct(rpc) + "</em></span>";
-      if (noteEl) noteEl.textContent = T("Отношение ", "Ratio ") + name(a) + " / " + name(b) + T(" (сколько «B» за одну «A»). Первые две отмеченные валюты.", " (how much of B per one A). First two checked currencies.") + (logScale ? T(" Лог-шкала.", " Log scale.") : "");
+      if (noteEl) noteEl.textContent = T("Отношение ", "Ratio ", "Relación ") + name(a) + " / " + name(b) + T(" (сколько «B» за одну «A»). Первые две отмеченные валюты.", " (how much of B per one A). First two checked currencies.", " (cuánto B por cada A). Primeras dos monedas marcadas.") + (logScale ? T(" Лог-шкала.", " Log scale.", " Escala log.") : "");
       HOVER = { kind: "line", W: W, padL: padL, w: w, x0: rx0, xs: rxs, dates: rp.map(function (p) { return p[0]; }), dnums: rp.map(function (p) { return dnum(p[0]); }), Xd: RX, names: [ticker(a) + "/" + ticker(b)], cols: [COLORS[0]], maps: [(function () { var m = {}; rp.forEach(function (p) { m[p[0]] = p[1]; }); return m; })()], baseName: "" };
       mountHover(); return;
     }
@@ -287,7 +289,7 @@
     // ----- ЛИНИИ -----
     var single = sels.length === 1;
     var seriesData = sels.map(function (s) { return { s: s, pts: rangeFilter(rebased(s)) }; }).filter(function (o) { return o.pts.length; });
-    if (!seriesData.length) { host.innerHTML = '<p class="mon-empty">' + T("Нет данных за период.", "No data for the period.") + "</p>"; return; }
+    if (!seriesData.length) { host.innerHTML = '<p class="mon-empty">' + T("Нет данных за период.", "No data for the period.", "Sin datos para el período.") + "</p>"; return; }
     seriesData.forEach(function (o) {
       var st = o.pts[0][1] || 1;
       o.norm = o.pts.map(function (p) { return [p[0], single ? p[1] : p[1] / st * 100]; });
@@ -314,8 +316,8 @@
         (pc == null ? "" : "<em class='mon-pc " + (pc >= 0 ? "up" : "dn") + "'>" + fmtPct(pc) + "</em>") + "</span>";
     }).join("");
     if (noteEl) noteEl.textContent = (single
-      ? T("Цена в ", "Price in ") + bn + T(" (одна валюта — реальный курс).", " (single currency — real rate).")
-      : T("Индекс относительной динамики (старт = 100), база — ", "Relative index (start = 100), base — ") + bn + T(". Так разномасштабные валюты сравнимы на одной шкале.", ". Lets currencies of different scale share one axis.")) + (logScale ? T(" Лог-шкала.", " Log scale.") : "");
+      ? T("Цена в ", "Price in ", "Precio en ") + bn + T(" (одна валюта — реальный курс).", " (single currency — real rate).", " (una moneda — tasa real).")
+      : T("Индекс относительной динамики (старт = 100), база — ", "Relative index (start = 100), base — ", "Índice relativo (inicio = 100), base — ") + bn + T(". Так разномасштабные валюты сравнимы на одной шкале.", ". Lets currencies of different scale share one axis.", ". Así monedas de distinta escala comparten un eje.")) + (logScale ? T(" Лог-шкала.", " Log scale.", " Escala log.") : "");
 
     var uni = {}; seriesData.forEach(function (o) { o.pts.forEach(function (p) { uni[p[0]] = 1; }); });
     var udates = Object.keys(uni).sort();
@@ -341,8 +343,8 @@
     }).filter(Boolean);
     if (!rows.length) { statsEl.innerHTML = ""; return; }
     var bn = baseName();
-    statsEl.innerHTML = '<div class="mon-sub">' + T("Статистика за период", "Stats for the period") + " · " + esc(bn) + "</div>" +
-      '<div class="mon-tbl-w"><table class="mon-tbl"><thead><tr><th>' + T("Валюта", "Currency") + "</th><th>min</th><th>max</th><th>" + T("средн.", "avg") + "</th><th>" + T("волат.", "vol") + "</th></tr></thead><tbody>" +
+    statsEl.innerHTML = '<div class="mon-sub">' + T("Статистика за период", "Stats for the period", "Estadística del período") + " · " + esc(bn) + "</div>" +
+      '<div class="mon-tbl-w"><table class="mon-tbl"><thead><tr><th>' + T("Валюта", "Currency", "Moneda") + "</th><th>min</th><th>max</th><th>" + T("средн.", "avg", "prom.") + "</th><th>" + T("волат.", "vol", "vol.") + "</th></tr></thead><tbody>" +
       rows.map(function (r) { return "<tr><td>" + esc(name(r.s)) + "</td><td>" + fmtNum(r.mn) + "</td><td>" + fmtNum(r.mx) + "</td><td>" + fmtNum(r.avg) + "</td><td>" + r.vol.toFixed(2) + "%</td></tr>"; }).join("") +
       "</tbody></table></div>";
   }
@@ -378,9 +380,9 @@
         return '<td style="background:' + corrColor(c) + '">' + (c == null ? "—" : c.toFixed(2)) + "</td>";
       }).join("") + "</tr>";
     }).join("");
-    corrEl.innerHTML = '<div class="mon-sub">' + T("Корреляция дневных доходностей", "Correlation of daily returns") + " · " + T("период", "period") +
+    corrEl.innerHTML = '<div class="mon-sub">' + T("Корреляция дневных доходностей", "Correlation of daily returns", "Correlación de retornos diarios") + " · " + T("период", "period", "período") +
       '</div><div class="mon-tbl-w"><table class="mon-tbl mon-heat">' + head + body + "</table></div>" +
-      '<p class="mon-note">' + T("1 — ходят синхронно, 0 — независимо, −1 — противоположно.", "1 — move together, 0 — independent, −1 — opposite.") + "</p>";
+      '<p class="mon-note">' + T("1 — ходят синхронно, 0 — независимо, −1 — противоположно.", "1 — move together, 0 — independent, −1 — opposite.", "1 — se mueven juntos, 0 — independiente, −1 — opuesto.") + "</p>";
   }
 
   // ---------- экспорт ----------
@@ -404,15 +406,15 @@
       var cv = document.createElement("canvas"); cv.width = W * 2; cv.height = H * 2;
       var ctx = cv.getContext("2d"); ctx.fillStyle = "#0c0c0c"; ctx.fillRect(0, 0, cv.width, cv.height);
       ctx.scale(2, 2); ctx.drawImage(img, 0, 0, W, H);
-      try { download(cv.toDataURL("image/png"), "ratescout-monitor.png"); } catch (e) { if (noteEl) noteEl.textContent = T("Не удалось сохранить PNG.", "PNG export failed."); }
+      try { download(cv.toDataURL("image/png"), "ratescout-monitor.png"); } catch (e) { if (noteEl) noteEl.textContent = T("Не удалось сохранить PNG.", "PNG export failed.", "No se pudo guardar el PNG."); }
     };
-    img.onerror = function () { if (noteEl) noteEl.textContent = T("Не удалось сохранить PNG.", "PNG export failed."); };
+    img.onerror = function () { if (noteEl) noteEl.textContent = T("Не удалось сохранить PNG.", "PNG export failed.", "No se pudo guardar el PNG."); };
     img.src = url;
   }
   function copyLink() {
     writeURL();
     var url = location.href;
-    var done = function () { if (linkBtn) { var old = linkBtn.textContent; linkBtn.textContent = T("скопировано ✓", "copied ✓"); setTimeout(function () { linkBtn.textContent = old; }, 1500); } };
+    var done = function () { if (linkBtn) { var old = linkBtn.textContent; linkBtn.textContent = T("скопировано ✓", "copied ✓", "copiado ✓"); setTimeout(function () { linkBtn.textContent = old; }, 1500); } };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, done); else done();
   }
 

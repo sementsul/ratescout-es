@@ -7,12 +7,12 @@
       catsEl = document.getElementById("hpCats"),
       searchEl = document.getElementById("hpSearch"),
       noteEl = document.getElementById("hpNote");
-  var EN = (document.documentElement.getAttribute("lang") || "ru").slice(0, 2) === "en";
-  function T(r, e) { return EN ? e : r; }
-  var PREF = EN ? "/en" : "";
+  var LANG = (document.documentElement.getAttribute("lang") || "es").slice(0, 2);
+  function T(r, e, s) { return LANG === "es" ? (s === undefined ? e : s) : (LANG === "en" ? e : r); }
+  var PREF = LANG === "en" ? "/en" : "";
   var DATA = null, sel = 30, cat = "", q = "", base = "USD";
-  var RANGES = [{ k: 1, l: T("24ч", "24h") }, { k: 7, l: T("1Н", "1W") }, { k: 30, l: T("1М", "1M") },
-                { k: 90, l: T("3М", "3M") }, { k: 180, l: T("6М", "6M") }, { k: 365, l: T("1Г", "1Y") }, { k: 0, l: T("Всё", "All") }];
+  var RANGES = [{ k: 1, l: T("24ч", "24h", "24h") }, { k: 7, l: T("1Н", "1W", "1S") }, { k: 30, l: T("1М", "1M", "1M") },
+                { k: 90, l: T("3М", "3M", "3M") }, { k: 180, l: T("6М", "6M", "6M") }, { k: 365, l: T("1Г", "1Y", "1A") }, { k: 0, l: T("Всё", "All", "Todo") }];
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function dnum(s) { var p = s.slice(0, 10).split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000 + (s.length > 10 ? (+s.slice(11, 13)) / 24 : 0); }
@@ -28,7 +28,7 @@
 
   fetch("/data/monitor.json").then(function (r) { return r.json(); }).then(function (j) {
     DATA = j; buildRanges(); buildCats(); buildBase(); render();
-  }).catch(function () { grid.innerHTML = '<p class="mon-empty">' + T("Не удалось загрузить данные.", "Failed to load data.") + "</p>"; });
+  }).catch(function () { grid.innerHTML = '<p class="mon-empty">' + T("Не удалось загрузить данные.", "Failed to load data.", "No se pudieron cargar los datos.") + "</p>"; });
 
   function buildRanges() {
     rangesEl.innerHTML = RANGES.map(function (r) { return '<button class="mon-btn' + (r.k === sel ? " on" : "") + '" data-k="' + r.k + '">' + r.l + "</button>"; }).join("");
@@ -38,8 +38,8 @@
   }
   function buildCats() {
     if (!DATA.cats || !catsEl) return;
-    var all = '<button type="button" data-c=""' + (cat ? "" : ' class="on"') + ">" + T("Все", "All") + "</button>";
-    catsEl.innerHTML = all + DATA.cats.map(function (c) { return '<button type="button" data-c="' + c.s + '"' + (cat === c.s ? ' class="on"' : "") + ">" + esc(EN ? c.en : c.ru) + "</button>"; }).join("");
+    var all = '<button type="button" data-c=""' + (cat ? "" : ' class="on"') + ">" + T("Все", "All", "Todas") + "</button>";
+    catsEl.innerHTML = all + DATA.cats.map(function (c) { return '<button type="button" data-c="' + c.s + '"' + (cat === c.s ? ' class="on"' : "") + ">" + esc(LANG === "es" ? (c.es || c.en) : (LANG === "en" ? c.en : c.ru)) + "</button>"; }).join("");
     Array.prototype.forEach.call(catsEl.querySelectorAll("button"), function (b) {
       b.addEventListener("click", function () { cat = b.getAttribute("data-c"); Array.prototype.forEach.call(catsEl.querySelectorAll("button"), function (x) { x.classList.toggle("on", x.getAttribute("data-c") === cat); }); render(); });
     });
@@ -61,11 +61,11 @@
     });
     var rows = slugs.map(function (s) { return { s: s, pc: pctChange(s, sel) }; })
       .sort(function (a, b) { return (b.pc == null ? -1e9 : b.pc) - (a.pc == null ? -1e9 : a.pc); });
-    if (!rows.length) { grid.innerHTML = '<p class="mon-empty">' + T("Ничего не найдено", "Nothing found") + "</p>"; if (noteEl) noteEl.textContent = ""; return; }
+    if (!rows.length) { grid.innerHTML = '<p class="mon-empty">' + T("Ничего не найдено", "Nothing found", "Nada encontrado") + "</p>"; if (noteEl) noteEl.textContent = ""; return; }
     grid.innerHTML = rows.map(function (r) {
       return '<a class="ht-cell" href="' + curUrl(r.s) + '" title="' + esc(name(r.s)) + '" style="background:' + heatColor(r.pc) + '">' +
         '<span class="ht-t">' + esc(ticker(r.s) || name(r.s)) + '</span><span class="ht-p">' + (r.pc == null ? "—" : fmtPct(r.pc)) + "</span></a>";
     }).join("");
-    if (noteEl) noteEl.textContent = T("Валют: ", "Currencies: ") + rows.length + " · " + T("цвет — изменение за период, клик — страница валюты.", "color = change over period, click — currency page.");
+    if (noteEl) noteEl.textContent = T("Валют: ", "Currencies: ", "Monedas: ") + rows.length + " · " + T("цвет — изменение за период, клик — страница валюты.", "color = change over period, click — currency page.", "el color = variación del período, clic — página de la moneda.");
   }
 })();
