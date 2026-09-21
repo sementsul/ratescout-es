@@ -1,3 +1,4 @@
+var RSLOC = (function () { var L = (document.documentElement.lang || "ru").slice(0, 2); return L === "es" ? "es-AR" : (L === "en" ? "en-US" : "ru-RU"); })();
 // Конвертер направления по ПОЛНОМУ каталогу BestChange (catalog.js).
 // Выбор «отдаю/получаю» → CTA-ссылка на конкретное направление BestChange с реф-меткой.
 (function () {
@@ -128,7 +129,7 @@
 
   var OPEN = conv.getAttribute("data-open") || "Открыть";
   var APPROX = conv.getAttribute("data-approx") || "≈";
-  var SAMEMSG = OPEN === "Open" ? "Choose different currencies" : "Выберите разные валюты";
+  var SAMEMSG = OPEN === "Abrir" ? "Elegí distintas monedas" : (OPEN === "Open" ? "Choose different currencies" : "Выберите разные валюты");
 
   // встроенная карта лучших курсов {to: rate} для валюты-владельца (на странице валюты)
   var RATES = null, ROWNER = "", elAmt = document.getElementById("cAmt"), elOut = document.getElementById("cOut");
@@ -145,8 +146,8 @@
 
   function fmtNum(v) {
     if (!isFinite(v)) return "";
-    if (v >= 1000) return v.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
-    if (v >= 1) return v.toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+    if (v >= 1000) return v.toLocaleString(RSLOC, { maximumFractionDigits: 0 });
+    if (v >= 1) return v.toLocaleString(RSLOC, { maximumFractionDigits: 2 });
     if (v >= 0.01) return v.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
     return v.toFixed(10).replace(/0+$/, "").replace(/\.$/, "");
   }
@@ -200,8 +201,8 @@
   function tms(s) { var p = s.split(/[- :]/); return Date.UTC(+p[0], +p[1] - 1, +p[2], +p[3] || 0, +p[4] || 0); }
   var ALL = raw.map(function (d) { return { t: tms(d[0]), v: d[1], hourly: d[0].indexOf(":") >= 0 }; });
   function fmt(v) {
-    if (v >= 1000) return v.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
-    if (v >= 1) return v.toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+    if (v >= 1000) return v.toLocaleString(RSLOC, { maximumFractionDigits: 0 });
+    if (v >= 1) return v.toLocaleString(RSLOC, { maximumFractionDigits: 2 });
     if (v >= 0.01) return (+v.toFixed(4)).toString();
     return (+v.toFixed(8)).toString();
   }
@@ -241,7 +242,7 @@
     function X(t) { return padL + (t - t0) / tspan * plotW; }
     function Y(v) { return padT + (1 - (v - mn) / span) * plotH; }
     pts = d.map(function (x) { return { px: X(x.t), py: Y(x.v), v: x.v, t: x.t, hourly: x.hourly }; });
-    if (per) per.textContent = "Период: " + fmtDate(t0) + (t0 === t1 ? "" : " — " + fmtDate(t1)) + " (UTC)";
+    if (per) per.textContent = ((document.documentElement.lang || "").slice(0, 2) === "es" ? "Período: " : ((document.documentElement.lang || "").slice(0, 2) === "en" ? "Period: " : "Период: ")) + fmtDate(t0) + (t0 === t1 ? "" : " — " + fmtDate(t1)) + " (UTC)";
     var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="rssvg" width="100%" height="' + H + '">', i;
     for (i = 0; i <= 4; i++) {
       var yv = mn + span * i / 4, yy = Y(yv);
@@ -430,8 +431,8 @@
   function esc(x) { return (x || "").replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
   function fmt(v) {
     if (!isFinite(v)) return "—";
-    if (v >= 1000) return v.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
-    if (v >= 1) return v.toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+    if (v >= 1000) return v.toLocaleString(RSLOC, { maximumFractionDigits: 0 });
+    if (v >= 1) return v.toLocaleString(RSLOC, { maximumFractionDigits: 2 });
     if (v >= 0.0001) return (+v.toFixed(6)).toString();
     return v.toFixed(12).replace(/0+$/, "").replace(/\.$/, "") || "0";  // малые числа — без научной нотации
   }
