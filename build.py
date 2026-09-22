@@ -2651,7 +2651,7 @@ def footer(lang):
         disc = ("RateScout es un servicio independiente de monitoreo de tasas. No somos una oficina de cambio ni "
                 "procesamos operaciones. Los enlaces llevan a BestChange (un monitoreo de tasas de oficinas de cambio); "
                 "a través del programa de afiliados podemos ganar una comisión.")
-        links = (f'<a href="{PREF[lang]}/o-servise/">Acerca de</a> · <a href="{PREF[lang]}/aml/">Verificación AML</a> · '
+        links = (f'<a href="{PREF[lang]}/kniga/">📖 Libros</a> · <a href="{PREF[lang]}/o-servise/">Acerca de</a> · <a href="{PREF[lang]}/aml/">Verificación AML</a> · '
                  f'<a href="{PREF[lang]}/vidzhet/">Widget</a> · <a href="{PREF[lang]}/redakciya/">Redacción</a> · '
                  f'<a href="https://ratescout-es.blogspot.com/" target="_blank" rel="noopener me">Blog en Blogger</a> · '
                  f'<a href="https://t.me/ratescout_kursen" target="_blank" rel="noopener me">Canal de Telegram</a> · '
