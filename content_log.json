@@ -424,5 +424,31 @@
   "action": "market-live",
   "lang": "ru",
   "blogger": "https://blogger.ratescout.ru/2026/09/ratescout_0194798405.html"
+ },
+ {
+  "at": "2026-09-26T09:50:57+00:00",
+  "action": "market-daily",
+  "lang": "es",
+  "slug": "mercado-2026-09-26",
+  "blogger": "https://ratescout-es.blogspot.com/2026/09/mercado-en-24-horas-2026-09-26.html"
+ },
+ {
+  "at": "2026-09-26T09:50:58+00:00",
+  "action": "market-live",
+  "lang": "es",
+  "blogger": "https://ratescout-es.blogspot.com/2026/09/mercado-hoy-resumen-ratescout_0611297313.html"
+ },
+ {
+  "at": "2026-09-26T09:55:44+00:00",
+  "action": "market-daily",
+  "lang": "en",
+  "slug": "market-2026-09-26",
+  "blogger": "https://ratescouten.blogspot.com/2026/09/market-in-24h-2026-09-26.html"
+ },
+ {
+  "at": "2026-09-26T09:55:44+00:00",
+  "action": "market-live",
+  "lang": "en",
+  "blogger": "https://ratescouten.blogspot.com/2026/09/market-today-ratescout-brief_01220948188.html"
  }
 ]
