@@ -541,5 +541,44 @@
   "action": "market-live",
   "lang": "ru",
   "blogger": "https://blogger.ratescout.ru/2026/09/ratescout_02114402256.html"
+ },
+ {
+  "at": "2026-09-29T11:35:46+00:00",
+  "action": "market-daily",
+  "lang": "en",
+  "slug": "market-2026-09-29",
+  "blogger": "https://ratescouten.blogspot.com/2026/09/market-in-24h-2026-09-29.html"
+ },
+ {
+  "at": "2026-09-29T11:35:47+00:00",
+  "action": "market-live",
+  "lang": "en",
+  "blogger": "https://ratescouten.blogspot.com/2026/09/market-today-ratescout-brief_0818419810.html"
+ },
+ {
+  "at": "2026-09-29T11:45:36+00:00",
+  "action": "market-daily",
+  "lang": "fr",
+  "slug": "marche-2026-09-29",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/09/marche-en-24h-2026-09-29.html"
+ },
+ {
+  "at": "2026-09-29T11:45:37+00:00",
+  "action": "market-live",
+  "lang": "fr",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/09/marche-du-jour-resume-ratescout_01827975521.html"
+ },
+ {
+  "at": "2026-09-29T11:59:51+00:00",
+  "action": "market-daily",
+  "lang": "ru",
+  "slug": "rynok-2026-09-29",
+  "blogger": "https://blogger.ratescout.ru/2026/09/2026-09-29.html"
+ },
+ {
+  "at": "2026-09-29T11:59:52+00:00",
+  "action": "market-live",
+  "lang": "ru",
+  "blogger": "https://blogger.ratescout.ru/2026/09/ratescout_01670609585.html"
  }
 ]
