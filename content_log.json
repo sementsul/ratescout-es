@@ -619,5 +619,31 @@
   "action": "market-live",
   "lang": "es",
   "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-hoy-resumen-ratescout.html"
+ },
+ {
+  "at": "2026-10-02T11:08:14+00:00",
+  "action": "market-daily",
+  "lang": "es",
+  "slug": "mercado-2026-10-02",
+  "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-en-24-horas-2026-10-02.html"
+ },
+ {
+  "at": "2026-10-02T11:08:16+00:00",
+  "action": "market-live",
+  "lang": "es",
+  "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-hoy-resumen-ratescout_02063507759.html"
+ },
+ {
+  "at": "2026-10-02T11:58:45+00:00",
+  "action": "market-daily",
+  "lang": "ru",
+  "slug": "rynok-2026-10-02",
+  "blogger": "https://blogger.ratescout.ru/2026/10/2026-10-02.html"
+ },
+ {
+  "at": "2026-10-02T11:58:47+00:00",
+  "action": "market-live",
+  "lang": "ru",
+  "blogger": "https://blogger.ratescout.ru/2026/10/ratescout.html"
  }
 ]
