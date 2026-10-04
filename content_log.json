@@ -684,5 +684,31 @@
   "action": "market-live",
   "lang": "fr",
   "blogger": "https://ratescout-fr.blogspot.com/2026/10/marche-du-jour-resume-ratescout.html"
+ },
+ {
+  "at": "2026-10-04T11:08:50+00:00",
+  "action": "market-daily",
+  "lang": "es",
+  "slug": "mercado-2026-10-04",
+  "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-en-24-horas-2026-10-04.html"
+ },
+ {
+  "at": "2026-10-04T11:08:50+00:00",
+  "action": "market-live",
+  "lang": "es",
+  "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-hoy-resumen-ratescout_0816592989.html"
+ },
+ {
+  "at": "2026-10-04T11:13:32+00:00",
+  "action": "market-daily",
+  "lang": "en",
+  "slug": "market-2026-10-04",
+  "blogger": "https://ratescouten.blogspot.com/2026/10/market-in-24h-2026-10-04.html"
+ },
+ {
+  "at": "2026-10-04T11:13:32+00:00",
+  "action": "market-live",
+  "lang": "en",
+  "blogger": "https://ratescouten.blogspot.com/2026/10/market-today-ratescout-brief_0537436677.html"
  }
 ]
