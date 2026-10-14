@@ -1022,5 +1022,57 @@
   "action": "market-live",
   "lang": "ru",
   "blogger": "https://blogger.ratescout.ru/2026/10/ratescout_02125184855.html"
+ },
+ {
+  "at": "2026-10-14T10:12:02+00:00",
+  "action": "market-daily",
+  "lang": "es",
+  "slug": "mercado-2026-10-14",
+  "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-en-24-horas-2026-10-14.html"
+ },
+ {
+  "at": "2026-10-14T10:12:03+00:00",
+  "action": "market-live",
+  "lang": "es",
+  "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-hoy-resumen-ratescout_01431023430.html"
+ },
+ {
+  "at": "2026-10-14T10:15:25+00:00",
+  "action": "market-daily",
+  "lang": "en",
+  "slug": "market-2026-10-14",
+  "blogger": "https://ratescouten.blogspot.com/2026/10/market-in-24h-2026-10-14.html"
+ },
+ {
+  "at": "2026-10-14T10:15:26+00:00",
+  "action": "market-live",
+  "lang": "en",
+  "blogger": "https://ratescouten.blogspot.com/2026/10/market-today-ratescout-brief_0971258586.html"
+ },
+ {
+  "at": "2026-10-14T10:18:47+00:00",
+  "action": "market-daily",
+  "lang": "fr",
+  "slug": "marche-2026-10-14",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/10/marche-en-24h-2026-10-14.html"
+ },
+ {
+  "at": "2026-10-14T10:18:48+00:00",
+  "action": "market-live",
+  "lang": "fr",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/10/marche-du-jour-resume-ratescout_01289386647.html"
+ },
+ {
+  "at": "2026-10-14T10:23:54+00:00",
+  "action": "market-daily",
+  "lang": "ru",
+  "slug": "rynok-2026-10-14",
+  "blogger": "https://blogger.ratescout.ru/2026/10/2026-10-14.html"
+ },
+ {
+  "at": "2026-10-14T10:23:55+00:00",
+  "action": "market-live",
+  "lang": "ru",
+  "blogger": "https://blogger.ratescout.ru/2026/10/ratescout_01402570503.html"
  }
 ]
