@@ -1217,5 +1217,18 @@
   "action": "market-live",
   "lang": "es",
   "blogger": "https://ratescout-es.blogspot.com/2026/10/mercado-hoy-resumen-ratescout_01838327937.html"
+ },
+ {
+  "at": "2026-10-28T11:50:24+00:00",
+  "action": "market-daily",
+  "lang": "fr",
+  "slug": "marche-2026-10-28",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/10/marche-en-24h-2026-10-28.html"
+ },
+ {
+  "at": "2026-10-28T11:50:25+00:00",
+  "action": "market-live",
+  "lang": "fr",
+  "blogger": "https://ratescout-fr.blogspot.com/2026/10/marche-du-jour-resume-ratescout_012974408.html"
  }
 ]
