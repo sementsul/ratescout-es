@@ -66,9 +66,10 @@ CATS = CAT["categories"]
 
 S = SITE
 BASE_URL = f"https://{S['domain']}"
+# Все партнёрские ссылки идут через защищённый роутер ОСНОВНОГО домена (Cloudflare Worker):
+# он сам подставляет p=1116359 и, если не передан noerid=1, erid. В HTML/JS/JSON метки нет.
+ROUTER = "https://ratescout.ru/go/bestchange"
 FR_BASE = "https://ratescout.info.gf"  # FR-зеркало: кросс-доменный hreflang + баннер
-REF = S["ref"]
-ERID = "" if SITE.get("langs") == ["es"] else "2VtzqvK5m96"
 INDEXNOW_KEY = "b394aeced6a92ed48a09e2bd30099905"  # публичный ключ IndexNow (ключ-файл на сайте)
 
 LANGS = S.get("langs", ["ru", "en"])
@@ -211,32 +212,30 @@ def cat_page(lang, cat):
     return f"{PREF[lang]}/kategoriya/{CAT_SLUG.get(cat, 'prochee')}/"
 
 
-def x_erid():
-    return ("&erid=" + ERID) if ERID else ""
+def router_link(frm=None, to=None, lang="es", page=None, partner=False):
+    """Ссылка на BestChange через роутер /go/bestchange (Cloudflare Worker).
+    Партнёрская метка ?p= и erid живут только в воркере — в HTML/JS их нет.
+    noerid=1 — обязательно: в ES-версии erid не показываем, воркер не должен его дописывать."""
+    q = []
+    if partner:
+        q.append("mode=partner")
+    elif page:
+        q.append("page=" + page)
+    else:
+        f, t = CUR.get(frm or "", {}), CUR.get(to or "", {})
+        if f.get("num") or t.get("num"):
+            q.append("fid=%s&tid=%s" % (f.get("id"), t.get("id")))
+        elif frm and to:
+            q.append("from=%s&to=%s" % (frm, to))
+    if lang and lang != "ru":
+        q.append("lang=" + lang)
+    q.append("noerid=1")
+    return ROUTER + "?" + "&".join(q)
 
 
-def _bc_qs(base_qs):
-    """Добавить erid к query-строке BestChange: ?p= -> ?p=&erid=, без дублей."""
-    if not ERID:
-        return base_qs
-    sep = "&" if base_qs else "?"
-    if "erid=" in base_qs:
-        return base_qs
-    return f"{base_qs}{sep}erid={ERID}"
-
-
-def bc_host(lang="ru"):
-    """Домен BestChange по языку: EN/FR/ES — международное зеркало .com."""
-    return "https://www.bestchange.com" if lang in ("en", "fr", "es") else "https://www.bestchange.ru"
-
-
-def bc_link(frm, to, lang="ru"):
-    f, t = CUR.get(frm, {}), CUR.get(to, {})
-    host = bc_host(lang)
-    if f.get("num") or t.get("num"):
-        qs = f"mt=rates&from={f.get('id')}&to={t.get('id')}&p={REF}"
-        return f"{host}/index.php?{_bc_qs(qs)}"
-    return f"{host}/{frm}-to-{to}.html?{_bc_qs(f'p={REF}')}"
+def bc_link(frm, to, lang="es"):
+    """Ссылка на направление BestChange — всегда через роутер."""
+    return router_link(frm, to, lang)
 
 
 def cpage(lang, slug):
@@ -2726,7 +2725,7 @@ def converter_html(lang, preset_from="", rates=None):
   <label>{tr(lang,'get')}<select id="cTo"></select></label>
   {amt}
   {res}
-  <a class="cta" id="cGo" href="{bc_host(lang)}/?p={REF}{x_erid()}" target="_blank" rel="nofollow noopener sponsored">{tr(lang,'find_rate')}</a>
+  <a class="cta" id="cGo" href="{router_link(lang=lang)}" target="_blank" rel="nofollow noopener sponsored">{tr(lang,'find_rate')}</a>
   {ad_mark(lang)}
 </div>{rjson}"""
 
@@ -5650,26 +5649,6 @@ input.addEventListener('keydown',function(e){if(e.key==='Enter')check();});
 """
 
 
-def geo_ref_script(elem_id, base):
-    """Инлайн-скрипт (без внешних API): ссылке elem_id добавляет реф-метку ?p=REF (+rel sponsored)
-    ТОЛЬКО для уверенно НЕ-российского часового пояса. РФ / неизвестно / JS off / бот → остаётся
-    нейтральной (комплаенс-safe по умолчанию — рос. пользователи реф-ссылку не видят)."""
-    return (
-        '<script>(function(){try{'
-        'var R=["Europe/Kaliningrad","Europe/Moscow","Europe/Simferopol","Europe/Kirov","Europe/Volgograd",'
-        '"Europe/Astrakhan","Europe/Saratov","Europe/Ulyanovsk","Europe/Samara","Asia/Yekaterinburg","Asia/Omsk",'
-        '"Asia/Novosibirsk","Asia/Barnaul","Asia/Tomsk","Asia/Novokuznetsk","Asia/Krasnoyarsk","Asia/Irkutsk",'
-        '"Asia/Chita","Asia/Yakutsk","Asia/Khandyga","Asia/Vladivostok","Asia/Ust-Nera","Asia/Magadan",'
-        '"Asia/Sakhalin","Asia/Srednekolymsk","Asia/Kamchatka","Asia/Anadyr"];'
-        'var tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||"";'
-        'var a=document.getElementById("' + elem_id + '");'
-        'if(a&&tz&&R.indexOf(tz)===-1){var b="' + base + '";'
-        + ('if(b.indexOf("erid=")===-1){b+=((b.indexOf("?")===-1)?"?":"&")+"erid=' + ERID + '";}' if ERID else '')
-        + 'b+=((b.indexOf("?")===-1)?"?":"&")+"p=' + str(REF) + '";'
-        'a.href=b;a.rel="nofollow noopener sponsored";}'
-        '}catch(e){}})();</script>')
-
-
 def aml_checker(lang):
     """Клиентский AML-чек: валидация формата + санкционный список OFAC + базовые ончейн-данные. Честно, без скоринга."""
     ru = lang == "ru"
@@ -5689,7 +5668,7 @@ def aml_checker(lang):
                 'color:#fff;border:1px solid #55ffff;cursor:pointer;font-family:inherit">Revisar</button>'
                 '<div id="amlResult" style="margin-top:12px"></div>'
                 f'<p class="updnote">Chequeo básico: formato, lista OFAC ({cnt} direcciones) y datos on-chain. NO es score AML completo.</p>{ad_mark(lang)}</div>'
-                "<script>(function(){var I=" + json.dumps({"ph": "Pegá una dirección cripto (BTC, ETH, TRON, LTC, XMR)", "btn": "Revisar", "net": "Red", "unrec": "Dirección no reconocida. Soportadas: BTC, ETH, TRON, LTC, XMR.", "sanc": "⚠️ La dirección está en la lista OFAC", "clean": "✅ No está en la lista OFAC", "expl": "Ver transacciones en el explorador →", "loading": "Cargando datos on-chain…", "onchain": "On-chain", "onchainFail": "On-chain no disponible — mira el explorador.", "tx": "transacciones", "bal": "saldo", "listNA": "Lista no disponible — intenta luego."}, ensure_ascii=False) + ";" + _AML_JS + "})();</script>" + geo_ref_script("amlFull", "https://www.bestchange.com/report/"))
+                "<script>(function(){var I=" + json.dumps({"ph": "Pegá una dirección cripto (BTC, ETH, TRON, LTC, XMR)", "btn": "Revisar", "net": "Red", "unrec": "Dirección no reconocida. Soportadas: BTC, ETH, TRON, LTC, XMR.", "sanc": "⚠️ La dirección está en la lista OFAC", "clean": "✅ No está en la lista OFAC", "expl": "Ver transacciones en el explorador →", "loading": "Cargando datos on-chain…", "onchain": "On-chain", "onchainFail": "On-chain no disponible — mira el explorador.", "tx": "transacciones", "bal": "saldo", "listNA": "Lista no disponible — intenta luego."}, ensure_ascii=False) + ";" + _AML_JS + "})();</script>")
     i18n = {
         "ph": "Вставьте криптоадрес (BTC, ETH, TRON, LTC, XMR)" if ru else "Paste a crypto address (BTC, ETH, TRON, LTC, XMR)",
         "btn": "Проверить" if ru else "Check",
@@ -5706,13 +5685,14 @@ def aml_checker(lang):
         "bal": "баланс" if ru else "balance",
         "listNA": "Санкционный список сейчас недоступен — попробуйте позже." if ru else "Sanctions list unavailable now — try later.",
     }
+    _aml_link = router_link(page="report", lang=lang)   # полная AML-проверка BestChange — через роутер
     disc = ((f"Базовая проверка: формат адреса, санкционный список OFAC ({cnt} адресов, обновляется автоматически) "
              "и базовые ончейн-данные. Это НЕ полноценный AML-скоринг — миксеры, скам и даркнет не проверяются. "
-             'Для <a id="amlFull" href="https://www.bestchange.ru/report/?erid=2VtzqvK5m96" target="_blank" rel="nofollow noopener">полной AML-проверки</a> '
+             'Для <a id="amlFull" href="' + _aml_link + '" target="_blank" rel="nofollow noopener">полной AML-проверки</a> '
              'воспользуйтесь специализированными сервисами. Результат справочный.') if ru else
             (f"Basic check: address format, OFAC sanctions list ({cnt} addresses, auto-updated) and basic on-chain "
              "data. This is NOT a full AML score — mixers, scams and darknet are not checked. "
-             'For a <a id="amlFull" href="https://www.bestchange.com/report/?erid=2VtzqvK5m96" target="_blank" rel="nofollow noopener">'
+             'For a <a id="amlFull" href="' + _aml_link + '" target="_blank" rel="nofollow noopener">'
              'full AML check</a> use specialized services. For reference only.'))
     h = "Проверить адрес" if ru else "Check an address"
     form = (f'<h2 id="check">{h}</h2>'
@@ -5724,12 +5704,7 @@ def aml_checker(lang):
             f'color:#fff;border:1px solid #55ffff;cursor:pointer;font-family:inherit">{i18n["btn"]}</button>'
             '<div id="amlResult" style="margin-top:12px"></div>'
             f'<p class="updnote">{disc}</p>{ad_mark(lang)}</div>')
-    # Гео-переключение реф-метки: HTML-ссылка нейтральная по умолчанию, ?p= только для не-РФ пояса.
-    _geo_base = ("https://www.bestchange.com/report/" if lang == "es"
-                 else ("https://www.bestchange.com/report/?erid=2VtzqvK5m96" if lang == "en"
-                 else "https://www.bestchange.ru/report/?erid=2VtzqvK5m96"))
-    geo_js = geo_ref_script("amlFull", _geo_base)
-    return form + "<script>(function(){var I=" + json.dumps(i18n, ensure_ascii=False) + ";" + _AML_JS + "})();</script>" + geo_js
+    return form + "<script>(function(){var I=" + json.dumps(i18n, ensure_ascii=False) + ";" + _AML_JS + "})();</script>"
 
 
 def compliance_pages(lang):
@@ -5903,11 +5878,10 @@ Actualizado en esta página.</p>\n<h2>Datos personales — Ley 25.326 (Argentina
 <li>traffic and arbitrage specialists;</li>
 <li>anyone with an audience interested in crypto and currency exchange.</li></ul>
 <h2>Join the program</h2>
-<p><a id="bcPartner" class="cta" href="https://www.bestchange.com/partner/?erid=2VtzqvK5m96" target="_blank" rel="nofollow noopener">Join the BestChange affiliate program &rarr;</a></p>
+<p><a id="bcPartner" class="cta" href="__PARTNER__" target="_blank" rel="nofollow noopener">Join the BestChange affiliate program &rarr;</a></p>
 <p class="updnote admark">Advertising. Advertiser: IE Zuborev N.S. erid: 2VtzqvK5m96</p>
 <p class="updnote">RateScout is an independent information service and a BestChange affiliate. The button leads to the
-   official BestChange affiliate program. For reference only; not a job offer or financial advice.</p>"""
-                    + geo_ref_script("bcPartner", "https://www.bestchange.com/partner/?erid=2VtzqvK5m96"),
+   official BestChange affiliate program. For reference only; not a job offer or financial advice.</p>""".replace("__PARTNER__", router_link(partner=True, lang=lang)),
                     "Earn with BestChange")
         render_page(lang, "aml", "Crypto address AML check — why and how",
                     "AML check: how to verify a crypto address for links to fraud and sanctions before exchanging.",
@@ -5980,8 +5954,7 @@ def build_catalog_js():
     lg = LANGS[0] if LANGS else "ru"
     cur = {slug: {"n": i["name"], "t": i["ticker"], "c": cat_name(i["category"], lg)} for slug, i in CUR.items()}
     return "window.__CATALOG__=" + json.dumps({"order": [cat_name(c, lg) for c in CATS], "cur": cur}, ensure_ascii=False) + \
-           ";window.__REF__=" + json.dumps(REF) + ";" + \
-           "window.__ERID__=" + json.dumps(ERID) + ";"
+           ";window.__ROUTER__=" + json.dumps(ROUTER) + ";"
 
 
 def write_catalog_js(js):
@@ -6616,8 +6589,10 @@ def render_chains(lang, chains):
         "updated": L("Обновлено:", "Updated:", "Mis à jour :", "Actualizado:"),
     }, ensure_ascii=False)
     js = CHAINS_JS.replace("__DATA__", data).replace("__L__", labels)
-    if lang in ("en", "fr", "es"):
-        js = js.replace("www.bestchange.ru", "www.bestchange.com")
+    # Домен BestChange больше не подменяем: все ссылки шагов идут через роутер /go/bestchange,
+    # а версию BestChange (.ru/.com) выбирает параметр lang= — его уже ставит bc_link вместе с noerid=1.
+    if lang != "ru" and "lang=" not in js:
+        js = js.replace("/go/bestchange?", "/go/bestchange?lang=" + lang + "&")
     title = L(f"Цепочки обмена валют — арбитраж и доходность | {S['name']}",
               f"Currency exchange chains — arbitrage & profit | {S['name']}",
               f"Chaînes d'échange — arbitrage et rendement | {S['name']}",
@@ -6978,7 +6953,7 @@ def make_monitor_json():
             ser_out[_s] = [[d, 1.0] for d, _v in _axis]
     os.makedirs(os.path.join(DIST, "data"), exist_ok=True)
     with open(os.path.join(DIST, "data", "monitor.json"), "w", encoding="utf-8") as f:
-        json.dump({"unit": "USDT", "ref": REF, "erid": ERID, "cur": cur, "cats": cats, "pairs": pairs,
+        json.dump({"unit": "USDT", "router": ROUTER, "cur": cur, "cats": cats, "pairs": pairs,
                    "popular": POPULAR, "trending": TRENDING, "yandex": YANDEX_Q, "metrika": METRIKA_Q, "series": ser_out},
                   f, ensure_ascii=False, separators=(",", ":"))
     print("✅ data/monitor.json: %d валют, %d кат., %d пар, %d GSC-напр., %d трендов, %d Яндекс-запр., %d Метрика-фраз"
