@@ -1269,5 +1269,17 @@
   "action": "market-live",
   "lang": "fr",
   "blogger": "https://ratescout-fr.blogspot.com/2026/11/marche-du-jour-resume-ratescout.html"
+ },
+ {
+  "at": "2026-11-09T14:24:20+00:00",
+  "action": "draft",
+  "id": "memo-tag",
+  "file": "drafts/memo-tag.md"
+ },
+ {
+  "at": "2026-11-09T14:24:58+00:00",
+  "action": "selfcheck",
+  "file": "drafts/memo-tag.md",
+  "verdict": "PASS"
  }
 ]
