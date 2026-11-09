@@ -124,12 +124,15 @@
   var PREF = EN ? "/en" : "";
   var PAIRS = {}; // "from-to" -> 1 (ядровые пары со страницей /obmen/)
   function curUrl(slug) { return PREF + "/valuta/" + slug + "/"; }
-  function bcErid() { return (DATA && DATA.erid) || "2VtzqvK5m96"; }
-  function bcDom() { return EN ? "https://www.bestchange.com" : "https://www.bestchange.ru"; }
+  // все партнёрские ссылки — через роутер /go/bestchange (метку ?p= и erid добавляет воркер)
+  function bcDom() { return (DATA && DATA.router) || "/go/bestchange"; }
+  function bcLang() { return LANG && LANG !== "ru" ? "&lang=" + LANG : ""; }
   function bcLink(a, b) {
     var fa = DATA.cur[a] || {}, fb = DATA.cur[b] || {};
-    if (fa.num || fb.num) return bcDom() + "/index.php?mt=rates&from=" + (fa.id || "") + "&to=" + (fb.id || "") + "&p=" + DATA.ref + "&erid=" + bcErid();
-    return bcDom() + "/" + a + "-to-" + b + ".html?p=" + DATA.ref + "&erid=" + bcErid();
+    var lg = bcLang();
+    // noerid=1 — в ES-версии erid не показываем, воркер не должен его дописывать
+    if (fa.num || fb.num) return bcDom() + "?fid=" + (fa.id || "") + "&tid=" + (fb.id || "") + lg + "&noerid=1";
+    return bcDom() + "?from=" + encodeURIComponent(a) + "&to=" + encodeURIComponent(b) + lg + "&noerid=1";
   }
   function pairUrl(a, b) { return PAIRS[a + "-" + b] ? PREF + "/obmen/" + a + "-" + b + "/" : bcLink(a, b); }
   function pairHasPage(a, b) { return !!PAIRS[a + "-" + b]; }

@@ -3,11 +3,16 @@ var RSLOC = (function () { var L = (document.documentElement.lang || "ru").slice
 // Выбор «отдаю/получаю» → CTA-ссылка на конкретное направление BestChange с реф-меткой.
 (function () {
   var C = window.__CATALOG__;
-  var REF = window.__REF__ || "1116359";
-  var ERID = (typeof window.__ERID__ === "string") ? window.__ERID__ : "2VtzqvK5m96";
-  var BCDOM = (function(){var L=(document.documentElement.lang || "ru").slice(0, 2); return L === "en" || L === "es";})()
-    ? "https://www.bestchange.com" : "https://www.bestchange.ru";
-  function bcQs(qs) { return ERID ? qs + "&erid=" + ERID : qs; }
+  // Все партнёрские ссылки идут через роутер /go/bestchange: метка ?p= и erid
+  // подставляются на сервере (Cloudflare Worker) и в HTML/JS не попадают.
+  // noerid=1 обязателен: в ES-версии erid не показываем, воркер не должен его дописывать.
+  var ROUTER = window.__ROUTER__ || "/go/bestchange";
+  var LG = (document.documentElement.lang || "es").slice(0, 2);
+  var LANGQ = LG && LG !== "ru" ? "lang=" + LG + "&" : "";
+  function rl(frm, to) {
+    return ROUTER + "?" + LANGQ + "from=" + encodeURIComponent(frm) + "&to=" + encodeURIComponent(to) + "&noerid=1";
+  }
+  function homeLink() { return ROUTER + "?" + LANGQ + "noerid=1"; }
 
   // ---- поиск по валютам (на всех страницах) ----
   (function () {
@@ -125,7 +130,7 @@ var RSLOC = (function () { var L = (document.documentElement.lang || "ru").slice
   fill(elFrom, defFrom);
   fill(elTo, defTo);
 
-  function deep(frm, to) { return BCDOM + "/" + frm + "-to-" + to + ".html?" + bcQs("p=" + REF); }
+  function deep(frm, to) { return rl(frm, to); }
 
   var OPEN = conv.getAttribute("data-open") || "Открыть";
   var APPROX = conv.getAttribute("data-approx") || "≈";
@@ -164,7 +169,7 @@ var RSLOC = (function () { var L = (document.documentElement.lang || "ru").slice
   function update() {
     var f = elFrom.value, t = elTo.value;
     if (f === t) {
-      elGo.href = BCDOM + "/?" + bcQs("p=" + REF);
+      elGo.href = homeLink();
       elGo.setAttribute("target", "_blank"); elGo.setAttribute("rel", "nofollow noopener sponsored");
       elGo.textContent = SAMEMSG; if (elOut) elOut.textContent = ""; return;
     }
