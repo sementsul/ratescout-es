@@ -93,7 +93,8 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add history.json aml-sanctions.json
             git commit -m "chore(data): снимок курсов + санкционный список OFAC [skip ci]"
-            git push
+            # main мог уехать (часовая сборка, мерж PR) — не роняем из-за этого деплой:
+            git push || { git pull --rebase --autostash && git push; }
             echo "✅ history.json/aml-sanctions.json обновлены и запушены"
           else
             echo "история без изменений — коммит не нужен"
