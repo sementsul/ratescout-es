@@ -1281,5 +1281,18 @@
   "action": "selfcheck",
   "file": "drafts/memo-tag.md",
   "verdict": "PASS"
+ },
+ {
+  "at": "2026-11-12T13:42:35+00:00",
+  "action": "market-daily",
+  "lang": "es",
+  "slug": "mercado-2026-11-12",
+  "blogger": "https://ratescout-es.blogspot.com/2026/11/mercado-en-24-horas-2026-11-12.html"
+ },
+ {
+  "at": "2026-11-12T13:42:35+00:00",
+  "action": "market-live",
+  "lang": "es",
+  "blogger": "https://ratescout-es.blogspot.com/2026/11/mercado-hoy-resumen-ratescout.html"
  }
 ]
